@@ -1,7 +1,7 @@
 import uuid
 import enum
 from datetime import datetime, date
-from sqlalchemy import Column, String, DateTime, Enum as SQLEnum, Date as SQLDate, ForeignKey, Text
+from sqlalchemy import Column, String, DateTime, Enum as SQLEnum, Date as SQLDate, ForeignKey, Text, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -68,6 +68,12 @@ class TaskPriority(str, enum.Enum):
     CRITICAL = "critical"
 
 
+class DocumentStatus(str, enum.Enum):
+    UPLOADED = "uploaded"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
 class Task(Base):
     __tablename__ = "tasks"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -79,4 +85,16 @@ class Task(Base):
     createdAt = Column(DateTime, default=datetime.utcnow)
     project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
     
+    project = relationship("Project")
+
+
+class Document(Base):
+    __tablename__ = "documents"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    file_path = Column(String, nullable=False, unique=True)
+    file_type = Column(String)
+    version = Column(Integer, default=1)
+    status = Column(SQLEnum(DocumentStatus), nullable=False, default=DocumentStatus.UPLOADED)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
     project = relationship("Project")

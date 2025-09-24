@@ -1,8 +1,8 @@
 import uuid
 from datetime import date, datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, computed_field
 from typing import Optional
-from project_management_api.domain.models import ProjectPhase, ProjectStatus, UserRole, TaskStatus, TaskPriority
+from project_management_api.domain.models import ProjectPhase, ProjectStatus, UserRole, TaskStatus, TaskPriority, DocumentStatus
 
 
 class ProjectBase(BaseModel):
@@ -95,3 +95,32 @@ class TaskUpdate(BaseModel):
     status: Optional[TaskStatus] = None
     priority: Optional[TaskPriority] = None
     dueDate: Optional[date] = None
+
+
+class DocumentBase(BaseModel):
+    name: str
+    file_type: Optional[str] = None
+    version: int = 1
+    status: DocumentStatus = DocumentStatus.UPLOADED
+
+
+class DocumentRead(DocumentBase):
+    id: uuid.UUID
+    project_id: uuid.UUID
+    
+    @computed_field
+    @property
+    def download_url(self) -> str:
+        # O nome do arquivo salvo é o seu ID para evitar colisões e ofuscar nomes.
+        # O NGINX servirá o arquivo a partir desta URL.
+        file_id_str = str(self.id)
+        return f"/uploads/{file_id_str}"
+    
+    class Config:
+        from_attributes = True
+
+
+class DocumentUpdate(BaseModel):
+    name: Optional[str] = None
+    status: Optional[DocumentStatus] = None
+    # No futuro, poderemos adicionar outros campos como 'type' ou 'description'
