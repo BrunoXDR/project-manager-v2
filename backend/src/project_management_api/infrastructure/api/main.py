@@ -1,6 +1,6 @@
 # backend/src/project_management_api/infrastructure/api/main.py
 from fastapi import FastAPI
-from .routes import projects, users
+from .routes import projects, users, auth
 
 app = FastAPI(
     title="Sistema de Gestão de Projetos API",
@@ -12,6 +12,7 @@ app = FastAPI(
 )
 
 # Include routers
+app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(users.router)
 

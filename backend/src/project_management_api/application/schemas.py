@@ -55,3 +55,13 @@ class UserRead(UserBase):
     
     class Config:
         from_attributes = True
+
+
+# Token schemas for JWT authentication
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
