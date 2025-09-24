@@ -1,9 +1,9 @@
 import uuid
 import enum
 from datetime import datetime, date
-from sqlalchemy import Column, String, DateTime, Enum as SQLEnum, Date as SQLDate
+from sqlalchemy import Column, String, DateTime, Enum as SQLEnum, Date as SQLDate, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 
@@ -52,3 +52,31 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.MEMBER)
+
+
+class TaskStatus(str, enum.Enum):
+    TODO = "todo"
+    IN_PROGRESS = "in-progress"
+    DONE = "done"
+    HOLD = "hold"
+
+
+class TaskPriority(str, enum.Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    CRITICAL = "critical"
+
+
+class Task(Base):
+    __tablename__ = "tasks"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    title = Column(String, nullable=False)
+    description = Column(Text)
+    status = Column(SQLEnum(TaskStatus), nullable=False, default=TaskStatus.TODO)
+    priority = Column(SQLEnum(TaskPriority), nullable=False, default=TaskPriority.MEDIUM)
+    dueDate = Column(SQLDate)
+    createdAt = Column(DateTime, default=datetime.utcnow)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
+    
+    project = relationship("Project")

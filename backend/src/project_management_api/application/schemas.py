@@ -1,8 +1,8 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 from pydantic import BaseModel
 from typing import Optional
-from project_management_api.domain.models import ProjectPhase, ProjectStatus, UserRole
+from project_management_api.domain.models import ProjectPhase, ProjectStatus, UserRole, TaskStatus, TaskPriority
 
 
 class ProjectBase(BaseModel):
@@ -65,3 +65,33 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     email: Optional[str] = None
+
+
+# Task schemas for task management
+class TaskBase(BaseModel):
+    title: str
+    description: Optional[str] = None
+    status: TaskStatus = TaskStatus.TODO
+    priority: TaskPriority = TaskPriority.MEDIUM
+    dueDate: Optional[date] = None
+
+
+class TaskRead(TaskBase):
+    id: uuid.UUID
+    project_id: uuid.UUID
+    createdAt: datetime
+    
+    class Config:
+        from_attributes = True
+
+
+class TaskCreate(TaskBase):
+    pass
+
+
+class TaskUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[TaskStatus] = None
+    priority: Optional[TaskPriority] = None
+    dueDate: Optional[date] = None

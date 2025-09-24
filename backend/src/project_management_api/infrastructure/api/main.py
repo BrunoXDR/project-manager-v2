@@ -1,6 +1,6 @@
 # backend/src/project_management_api/infrastructure/api/main.py
 from fastapi import FastAPI
-from .routes import projects, users, auth
+from .routes import projects, users, auth, tasks
 
 app = FastAPI(
     title="Sistema de Gestão de Projetos API",
@@ -15,6 +15,7 @@ app = FastAPI(
 app.include_router(auth.router)
 app.include_router(projects.router)
 app.include_router(users.router)
+app.include_router(tasks.router)
 
 @app.get("/api/health", tags=["Health"])
 def health_check():
