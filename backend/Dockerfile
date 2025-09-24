@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Instalar dependências
 COPY pyproject.toml .
-RUN pip install "fastapi[all]" uvicorn sqlalchemy "asyncpg" alembic python-dotenv
+RUN pip install "fastapi[all]" uvicorn sqlalchemy "asyncpg" alembic python-dotenv "passlib[bcrypt]" "python-jose[cryptography]"
 
 # Copiar o código da aplicação
 COPY ./src /app/src
