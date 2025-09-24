@@ -1,0 +1,44 @@
+# backend/docker-compose.yml
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: project_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=secret
+      - POSTGRES_DB=project_management_db
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+
+  backend:
+    container_name: project_backend
+    build: .
+    command: uvicorn project_management_api.infrastructure.api.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./src:/app/src
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://admin:secret@db:5432/project_management_db
+    depends_on:
+      - db
+    restart: unless-stopped
+
+  gateway:
+    container_name: project_gateway
+    image: nginx:latest
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
