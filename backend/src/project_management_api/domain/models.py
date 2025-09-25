@@ -120,6 +120,7 @@ class Document(Base):
     version = Column(Integer, default=1)
     status = Column(SQLEnum(DocumentStatus), nullable=False, default=DocumentStatus.UPLOADED)
     project_id = Column(String, ForeignKey("projects.id"), nullable=False)
+    uploadedAt = Column(DateTime, default=datetime.utcnow, nullable=False)
     project = relationship("Project")
 
 

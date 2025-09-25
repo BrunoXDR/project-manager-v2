@@ -18,7 +18,13 @@ class DocumentRepository:
         return doc
     
     async def get_by_project(self, project_id: uuid.UUID) -> List[Document]:
-        result = await self.db.execute(select(Document).filter(Document.project_id == project_id))
+        from sqlalchemy.orm import selectinload
+        
+        result = await self.db.execute(
+            select(Document)
+            .options(selectinload(Document.project))
+            .filter(Document.project_id == project_id)
+        )
         return result.scalars().all()
     
     async def get_by_id(self, doc_id: uuid.UUID) -> Optional[Document]:

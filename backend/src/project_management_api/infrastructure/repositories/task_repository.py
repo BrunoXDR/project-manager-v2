@@ -13,7 +13,16 @@ class TaskRepository:
         self.db = db
 
     async def get_by_project(self, project_id: uuid.UUID) -> List[Task]:
-        result = await self.db.execute(select(Task).filter(Task.project_id == project_id))
+        from sqlalchemy.orm import selectinload
+        
+        result = await self.db.execute(
+            select(Task)
+            .options(
+                selectinload(Task.project),
+                selectinload(Task.assigned_to)
+            )
+            .filter(Task.project_id == str(project_id))
+        )
         return result.scalars().all()
 
     async def get_by_id(self, task_id: uuid.UUID) -> Optional[Task]:
