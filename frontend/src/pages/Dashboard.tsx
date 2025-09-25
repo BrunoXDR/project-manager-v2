@@ -1,20 +1,64 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge, PhaseBadge } from "@/components/ui/status-badge";
-import { mockProjects } from "@/data/mockData";
 import { Button } from "@/components/ui/button";
 import { Plus, TrendingUp, Clock, Users, AlertTriangle } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { projectsAPI, Project } from "@/lib/apiClient";
 
 const Dashboard = () => {
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setLoading(true);
+        const response = await projectsAPI.getProjects(1, 10);
+        setProjects(response.items);
+      } catch (err) {
+        console.error('Erro ao carregar projetos:', err);
+        setError('Erro ao carregar projetos');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-foreground mb-2">Carregando...</h2>
+          <p className="text-text-secondary">Buscando dados do dashboard</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-foreground mb-2">Erro</h2>
+          <p className="text-text-secondary">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   // Calculate dashboard metrics
-  const totalProjects = mockProjects.length;
-  const activeProjects = mockProjects.filter(p => p.status === 'active').length;
-  const projectsOnHold = mockProjects.filter(p => p.status === 'hold').length;
-  const completedProjects = mockProjects.filter(p => p.status === 'completed').length;
+  const totalProjects = projects.length;
+  const activeProjects = projects.filter(p => p.status === 'active').length;
+  const projectsOnHold = projects.filter(p => p.status === 'hold').length;
+  const completedProjects = projects.filter(p => p.status === 'completed').length;
 
   // Get recent projects (last 5)
-  const recentProjects = mockProjects
-    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+  const recentProjects = projects
+    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
     .slice(0, 5);
 
   const stats = [
@@ -113,15 +157,14 @@ const Dashboard = () => {
                 <div className="flex-1">
                   <div className="flex items-center space-x-3">
                     <h3 className="font-semibold text-foreground">{project.name}</h3>
-                    <StatusBadge status={project.status} />
-                    <PhaseBadge phase={project.phase} />
+                    <StatusBadge status={project.status as any} />
                   </div>
                   <div className="flex items-center space-x-4 mt-2 text-sm text-text-secondary">
-                    <span>{project.client}</span>
+                    <span>Prioridade: {project.priority}</span>
                     <span>•</span>
-                    <span>GP: {project.projectManager}</span>
+                    <span>Gerente: {project.manager?.full_name || 'Não atribuído'}</span>
                     <span>•</span>
-                    <span>Previsão: {new Date(project.estimatedEndDate).toLocaleDateString('pt-BR')}</span>
+                    <span>Fim: {new Date(project.end_date).toLocaleDateString('pt-BR')}</span>
                   </div>
                 </div>
                 <div className="flex items-center space-x-2">

@@ -46,7 +46,7 @@ class ProjectRepository:
                 selectinload(Project.project_manager),
                 selectinload(Project.technical_lead)
             )
-            .filter(Project.id == project_id)
+            .filter(Project.id == str(project_id))
         )
         return result.scalars().first()
 
@@ -62,13 +62,13 @@ class ProjectRepository:
         if not update_data:
             return await self.get_by_id(p_id)
         
-        q = sqlalchemy_update(Project).where(Project.id == p_id).values(update_data).returning(Project)
+        q = sqlalchemy_update(Project).where(Project.id == str(p_id)).values(update_data).returning(Project)
         res = await self.db.execute(q)
         await self.db.commit()
         return res.scalars().first()
 
     async def delete(self, p_id: uuid.UUID) -> bool:
-        q = sqlalchemy_delete(Project).where(Project.id == p_id)
+        q = sqlalchemy_delete(Project).where(Project.id == str(p_id))
         res = await self.db.execute(q)
         await self.db.commit()
         return res.rowcount > 0

@@ -3,14 +3,19 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { StatusBadge, PhaseBadge } from "@/components/ui/status-badge";
-import { projectsAPI } from "@/lib/apiClient";
+import { projectsAPI, CreateProjectRequest } from "@/lib/apiClient";
 import { Plus, Search, Filter, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ProjectStatus, ProjectPhase } from "@/types/project";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import ProjectForm from "@/components/ProjectForm";
 import type { Project, ProjectsResponse } from "@/lib/apiClient";
 
 const Projects = () => {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [phaseFilter, setPhaseFilter] = useState<string>("all");
@@ -20,6 +25,11 @@ const Projects = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProjects, setTotalProjects] = useState(0);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+
+  // Check if user can manage projects (ADMIN or MANAGER)
+  const canManageProjects = user?.role === 'ADMIN' || user?.role === 'MANAGER';
 
   // Fetch projects from API
   const fetchProjects = async (page: number = 1) => {
@@ -68,6 +78,23 @@ const Projects = () => {
     }
   };
 
+  // Handle project creation
+  const handleCreateProject = async (projectData: CreateProjectRequest) => {
+    try {
+      setIsCreating(true);
+      await projectsAPI.createProject(projectData);
+      toast.success("Projeto criado com sucesso!");
+      setIsCreateModalOpen(false);
+      // Refresh the projects list
+      await fetchProjects(currentPage);
+    } catch (error) {
+      console.error("Error creating project:", error);
+      toast.error("Erro ao criar projeto. Tente novamente.");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -78,12 +105,27 @@ const Projects = () => {
             Gerencie todos os seus projetos em um só lugar
           </p>
         </div>
-        <Link to="/projects/new">
-          <Button className="bg-gradient-to-r from-primary to-primary-light hover:from-primary-dark hover:to-primary">
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Projeto
-          </Button>
-        </Link>
+        {canManageProjects && (
+          <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-to-r from-primary to-primary-light hover:from-primary-dark hover:to-primary">
+                <Plus className="mr-2 h-4 w-4" />
+                Novo Projeto
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Criar Novo Projeto</DialogTitle>
+              </DialogHeader>
+              <ProjectForm
+                onSubmit={handleCreateProject}
+                onCancel={() => setIsCreateModalOpen(false)}
+                isLoading={isCreating}
+                submitLabel="Criar Projeto"
+              />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {/* Filters */}
@@ -174,7 +216,12 @@ const Projects = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-3">
-                      <h3 className="text-xl font-semibold text-foreground">{project.name}</h3>
+                      <Link 
+                        to={`/projects/${project.id}`}
+                        className="text-xl font-semibold text-foreground hover:text-primary transition-colors"
+                      >
+                        {project.name}
+                      </Link>
                       <StatusBadge status={project.status as ProjectStatus} />
                       {/* Phase badge removed since API doesn't have phase */}
                     </div>

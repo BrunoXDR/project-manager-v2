@@ -9,7 +9,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
-import ProjectDetail from "./pages/ProjectDetail";
+import ProjectDetails from "./pages/ProjectDetails";
+import NewProject from "./pages/NewProject";
 import Analytics from "./pages/Analytics";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
@@ -37,7 +38,8 @@ const App = () => (
                     <Route path="/" element={<Dashboard />} />
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/projects" element={<Projects />} />
-                    <Route path="/projects/:id" element={<ProjectDetail />} />
+                    <Route path="/projects/new" element={<NewProject />} />
+                    <Route path="/projects/:id" element={<ProjectDetails />} />
                     <Route path="/analytics" element={<Analytics />} />
                     <Route path="/admin" element={<Admin />} />
                     <Route path="*" element={<NotFound />} />
