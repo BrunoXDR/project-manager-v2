@@ -1,30 +1,69 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { mockProjects } from "@/data/mockData";
+import { projectsAPI, Project } from "@/lib/apiClient";
 import { BarChart3, TrendingUp, Clock, AlertTriangle, Users, Target } from "lucide-react";
 
 const Analytics = () => {
-  // Calculate analytics data
-  const totalProjects = mockProjects.length;
-  const activeProjects = mockProjects.filter(p => p.status === 'active').length;
-  const completedProjects = mockProjects.filter(p => p.status === 'completed').length;
-  const projectsOnHold = mockProjects.filter(p => p.status === 'hold').length;
-  
-  // Projects by phase
-  const projectsByPhase = mockProjects.reduce((acc, project) => {
-    acc[project.phase] = (acc[project.phase] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await projectsAPI.getProjects();
+        setProjects(response.items);
+      } catch (err) {
+        console.error('Erro ao carregar projetos:', err);
+        setError('Erro ao carregar dados dos projetos');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-foreground mb-2">Carregando...</h2>
+          <p className="text-text-secondary">Buscando dados de analytics</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-foreground mb-2">Erro ao carregar dados</h2>
+          <p className="text-text-secondary">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Calculate analytics data
+  const totalProjects = projects.length;
+  const activeProjects = projects.filter(p => p.status === 'active').length;
+  const completedProjects = projects.filter(p => p.status === 'completed').length;
+  const projectsOnHold = projects.filter(p => p.status === 'hold').length;
+  
   // Projects by status
-  const projectsByStatus = mockProjects.reduce((acc, project) => {
+  const projectsByStatus = projects.reduce((acc, project) => {
     acc[project.status] = (acc[project.status] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
-  // Performance metrics
-  const overdueProjects = mockProjects.filter(p => 
-    new Date(p.estimatedEndDate) < new Date() && p.status === 'active'
+  // Performance metrics - Note: API projects don't have estimatedEndDate, using end_date
+  const overdueProjects = projects.filter(p => 
+    p.end_date && new Date(p.end_date) < new Date() && p.status === 'active'
   ).length;
 
   const metrics = [
@@ -37,7 +76,7 @@ const Analytics = () => {
     },
     {
       title: "Taxa de Sucesso",
-      value: `${Math.round((completedProjects / totalProjects) * 100)}%`,
+      value: totalProjects > 0 ? `${Math.round((completedProjects / totalProjects) * 100)}%` : "0%",
       description: "Projetos finalizados",
       icon: TrendingUp,
       color: "text-success"
@@ -57,17 +96,6 @@ const Analytics = () => {
       color: "text-danger"
     }
   ];
-
-  const getPhaseLabel = (phase: string) => {
-    const labels: Record<string, string> = {
-      inception: 'Inception',
-      definition: 'Definition',
-      built: 'Built',
-      deploy: 'Deploy',
-      close: 'Close'
-    };
-    return labels[phase] || phase;
-  };
 
   const getStatusLabel = (status: string) => {
     const labels: Record<string, string> = {
@@ -112,121 +140,115 @@ const Analytics = () => {
         })}
       </div>
 
+      {/* Project Status Distribution */}
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Projects by Phase */}
         <Card className="border-card-border">
           <CardHeader>
-            <CardTitle className="text-foreground flex items-center">
-              <BarChart3 className="mr-2 h-5 w-5" />
-              Projetos por Fase
+            <CardTitle className="flex items-center gap-2 text-foreground">
+              <BarChart3 className="h-5 w-5" />
+              Distribuição por Status
             </CardTitle>
             <CardDescription className="text-text-secondary">
-              Distribuição dos projetos nas diferentes fases
+              Projetos organizados por status atual
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {Object.entries(projectsByPhase).map(([phase, count]) => (
-                <div key={phase} className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-3 h-3 rounded-full bg-primary" />
-                    <span className="text-sm font-medium text-foreground">
-                      {getPhaseLabel(phase)}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant="outline">{count}</Badge>
-                    <div className="w-24 bg-surface-secondary rounded-full h-2">
-                      <div 
-                        className="bg-primary h-2 rounded-full"
-                        style={{ width: `${(count / totalProjects) * 100}%` }}
-                      />
-                    </div>
+          <CardContent className="space-y-4">
+            {Object.entries(projectsByStatus).map(([status, count]) => (
+              <div key={status} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">
+                    {getStatusLabel(status)}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="text-sm font-medium text-foreground">{count}</div>
+                  <div className="text-xs text-text-tertiary">
+                    ({totalProjects > 0 ? Math.round((count / totalProjects) * 100) : 0}%)
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </CardContent>
         </Card>
 
-        {/* Projects by Status */}
+        {/* Project Performance */}
         <Card className="border-card-border">
           <CardHeader>
-            <CardTitle className="text-foreground flex items-center">
-              <Users className="mr-2 h-5 w-5" />
-              Projetos por Status
+            <CardTitle className="flex items-center gap-2 text-foreground">
+              <TrendingUp className="h-5 w-5" />
+              Performance dos Projetos
             </CardTitle>
             <CardDescription className="text-text-secondary">
-              Status atual dos projetos
+              Métricas de desempenho e produtividade
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {Object.entries(projectsByStatus).map(([status, count]) => {
-                const getStatusColor = (status: string) => {
-                  switch (status) {
-                    case 'active': return 'bg-success';
-                    case 'hold': return 'bg-warning';
-                    case 'completed': return 'bg-primary';
-                    case 'cancelled': return 'bg-danger';
-                    default: return 'bg-muted';
-                  }
-                };
-
-                return (
-                  <div key={status} className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-3 h-3 rounded-full ${getStatusColor(status)}`} />
-                      <span className="text-sm font-medium text-foreground">
-                        {getStatusLabel(status)}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Badge variant="outline">{count}</Badge>
-                      <div className="w-24 bg-surface-secondary rounded-full h-2">
-                        <div 
-                          className={`${getStatusColor(status)} h-2 rounded-full`}
-                          style={{ width: `${(count / totalProjects) * 100}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-text-secondary">Projetos no Prazo</span>
+              <span className="text-sm font-medium text-foreground">
+                {totalProjects - overdueProjects} de {totalProjects}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-text-secondary">Taxa de Conclusão</span>
+              <span className="text-sm font-medium text-foreground">
+                {totalProjects > 0 ? Math.round((completedProjects / totalProjects) * 100) : 0}%
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-text-secondary">Projetos Ativos</span>
+              <span className="text-sm font-medium text-foreground">
+                {activeProjects}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-text-secondary">Projetos em Espera</span>
+              <span className="text-sm font-medium text-foreground">
+                {projectsOnHold}
+              </span>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Project Management Performance */}
+      {/* Recent Projects Activity */}
       <Card className="border-card-border">
         <CardHeader>
-          <CardTitle className="text-foreground">Performance de Gestão</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-foreground">
+            <Users className="h-5 w-5" />
+            Projetos Recentes
+          </CardTitle>
           <CardDescription className="text-text-secondary">
-            Métricas de desempenho e qualidade
+            Últimos projetos atualizados no sistema
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="text-center p-4 border border-card-border rounded-lg">
-              <div className="text-2xl font-bold text-success mb-2">
-                {Math.round((completedProjects / totalProjects) * 100)}%
-              </div>
-              <p className="text-sm text-text-secondary">Taxa de Entrega</p>
+          {projects.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-text-secondary">Nenhum projeto encontrado</p>
             </div>
-            <div className="text-center p-4 border border-card-border rounded-lg">
-              <div className="text-2xl font-bold text-warning mb-2">
-                {Math.round((projectsOnHold / totalProjects) * 100)}%
-              </div>
-              <p className="text-sm text-text-secondary">Projetos em Espera</p>
+          ) : (
+            <div className="space-y-4">
+              {projects.slice(0, 5).map((project) => (
+                <div key={project.id} className="flex items-center justify-between p-3 rounded-lg border border-card-border">
+                  <div className="flex-1">
+                    <h4 className="font-medium text-foreground">{project.name}</h4>
+                    <p className="text-sm text-text-secondary line-clamp-1">
+                      {project.description}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-xs">
+                      {getStatusLabel(project.status)}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {project.priority}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="text-center p-4 border border-card-border rounded-lg">
-              <div className="text-2xl font-bold text-danger mb-2">
-                {Math.round((overdueProjects / activeProjects || 0) * 100)}%
-              </div>
-              <p className="text-sm text-text-secondary">Taxa de Atraso</p>
-            </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>
