@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api/projects/{project_id}/tasks", tags=["Tasks"])
 async def get_tasks_for_project(
     project_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(security.get_current_user)
+    current_user: User = Depends(security.allow_all_authenticated)
 ):
     return await TaskRepository(db).get_by_project(project_id)
 
@@ -25,7 +25,7 @@ async def get_task(
     project_id: uuid.UUID,
     task_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(security.get_current_user)
+    current_user: User = Depends(security.allow_all_authenticated)
 ):
     task = await TaskRepository(db).get_by_id(task_id)
     if not task or task.project_id != project_id:
@@ -38,7 +38,7 @@ async def create_task(
     project_id: uuid.UUID,
     task: schemas.TaskCreate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(security.get_current_user)
+    current_user: User = Depends(security.allow_all_authenticated)
 ):
     return await TaskRepository(db).create_for_project(project_id, task)
 
@@ -49,7 +49,7 @@ async def update_task(
     task_id: uuid.UUID,
     task: schemas.TaskUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(security.get_current_user)
+    current_user: User = Depends(security.allow_all_authenticated)
 ):
     repo = TaskRepository(db)
     # Validação extra para garantir que a tarefa pertence ao projeto
@@ -66,7 +66,7 @@ async def delete_task(
     project_id: uuid.UUID,
     task_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(security.get_current_user)
+    current_user: User = Depends(security.allow_managers_and_admins)
 ):
     repo = TaskRepository(db)
     # Validação extra
