@@ -12,9 +12,25 @@ class ProjectRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_all(self) -> List[Project]:
-        result = await self.db.execute(select(Project))
-        return result.scalars().all()
+    async def get_all(self, *, skip: int = 0, limit: int = 20, status: Optional[ProjectStatus] = None) -> Tuple[List[Project], int]:
+        # Query para os itens paginados e filtrados
+        query = select(Project).order_by(Project.createdAt.desc())
+        if status:
+            query = query.filter(Project.status == status)
+        
+        # Query para a contagem total (com os mesmos filtros)
+        count_query = select(func.count()).select_from(Project)
+        if status:
+            count_query = count_query.filter(Project.status == status)
+
+        total_result = await self.db.execute(count_query)
+        total = total_result.scalar_one()
+
+        paginated_query = query.offset(skip).limit(limit)
+        items_result = await self.db.execute(paginated_query)
+        items = items_result.scalars().all()
+        
+        return items, total
 
     async def get_by_id(self, project_id: uuid.UUID) -> Optional[Project]:
         result = await self.db.execute(select(Project).filter(Project.id == project_id))

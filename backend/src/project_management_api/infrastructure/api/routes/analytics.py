@@ -29,6 +29,11 @@ async def get_projects_by_phase(
     stats_tuples = await repo.count_by_phase()
     return [schemas.AnalyticsStat(category=phase.value, count=count) for phase, count in stats_tuples]
 
+@router.get("/debug/sentry-test")
+async def trigger_error():
+    division_by_zero = 1 / 0
+    return {"result": division_by_zero}  # Esta linha nunca será alcançada
+
 @router.get("/projects-by-pm", response_model=List[schemas.AnalyticsStat])
 async def get_projects_by_project_manager(
     db: AsyncSession = Depends(get_db),

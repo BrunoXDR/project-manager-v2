@@ -1,13 +1,22 @@
 import uuid
 from datetime import date, datetime
-from pydantic import BaseModel, computed_field
-from typing import Optional, Any
+from pydantic import BaseModel, computed_field, Field
+from typing import Optional, Any, Generic, TypeVar, List
 from project_management_api.domain.models import ProjectPhase, ProjectStatus, UserRole, TaskStatus, TaskPriority, DocumentStatus
+
+T = TypeVar('T')
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    total: int = Field(..., description="Número total de itens")
+    page: int = Field(..., gt=0, description="Número da página atual")
+    size: int = Field(..., gt=0, description="Número de itens por página")
+    pages: int = Field(..., description="Número total de páginas")
+    items: List[T] = Field(..., description="Lista de itens para a página atual")
 
 
 # Schema for representing a user within a project context
 class UserInProject(BaseModel):
-    id: uuid.UUID
+    id: str
     email: str
     
     class Config:
@@ -33,12 +42,12 @@ class ProjectBase(BaseModel):
     pct: Optional[str] = None
     phase: ProjectPhase = ProjectPhase.INCEPTION
     status: ProjectStatus = ProjectStatus.ACTIVE
-    project_manager_id: Optional[uuid.UUID] = None
-    technical_lead_id: Optional[uuid.UUID] = None
+    project_manager_id: Optional[str] = None
+    technical_lead_id: Optional[str] = None
 
 
 class ProjectRead(ProjectBase):
-    id: uuid.UUID
+    id: str
     project_manager: Optional[UserInProject] = None
     technical_lead: Optional[UserInProject] = None
     
@@ -60,8 +69,8 @@ class ProjectUpdate(BaseModel):
     pct: Optional[str] = None
     phase: Optional[ProjectPhase] = None
     status: Optional[ProjectStatus] = None
-    project_manager_id: Optional[uuid.UUID] = None
-    technical_lead_id: Optional[uuid.UUID] = None
+    project_manager_id: Optional[str] = None
+    technical_lead_id: Optional[str] = None
 
 
 class UserBase(BaseModel):
@@ -102,8 +111,8 @@ class TaskBase(BaseModel):
 
 
 class TaskRead(TaskBase):
-    id: uuid.UUID
-    project_id: uuid.UUID
+    id: str
+    project_id: str
     createdAt: datetime
     assigned_to: Optional[UserInTask] = None
     
@@ -133,16 +142,9 @@ class DocumentBase(BaseModel):
 
 
 class DocumentRead(DocumentBase):
-    id: uuid.UUID
-    project_id: uuid.UUID
-    
-    @computed_field
-    @property
-    def download_url(self) -> str:
-        # O nome do arquivo salvo é o seu ID para evitar colisões e ofuscar nomes.
-        # O NGINX servirá o arquivo a partir desta URL.
-        file_id_str = str(self.id)
-        return f"/uploads/{file_id_str}"
+    id: str
+    project_id: str
+    uploadedAt: datetime
     
     class Config:
         from_attributes = True

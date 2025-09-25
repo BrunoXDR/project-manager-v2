@@ -1,7 +1,7 @@
 # src/project_management_api/infrastructure/api/security.py
 import os
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, List
 from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from passlib.context import CryptContext
 
 from project_management_api.application.schemas import TokenData
-from project_management_api.domain.models import User
+from project_management_api.domain.models import User, UserRole
 from project_management_api.infrastructure.db.database import get_db
 from project_management_api.infrastructure.repositories.user_repository import UserRepository
 
@@ -54,3 +54,28 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
     if user is None:
         raise credentials_exception
     return user
+
+
+# Role-based authorization
+class RoleChecker:
+    def __init__(self, allowed_roles: List[UserRole]):
+        self.allowed_roles = allowed_roles
+
+    def __call__(self, current_user: User = Depends(get_current_user)):
+        if current_user.role not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="The user does not have enough privileges for this action"
+            )
+        return current_user
+
+
+# Criar instâncias específicas para os casos de uso mais comuns
+allow_all_authenticated = RoleChecker([UserRole.ADMIN, UserRole.MANAGER, UserRole.MEMBER])
+allow_managers_and_admins = RoleChecker([UserRole.ADMIN, UserRole.MANAGER])
+allow_only_admins = RoleChecker([UserRole.ADMIN])
+
+
+# Função para compatibilidade com código existente
+async def get_current_admin_user(current_user: User = Depends(allow_only_admins)):
+    return current_user

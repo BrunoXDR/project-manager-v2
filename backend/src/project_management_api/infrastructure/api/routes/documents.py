@@ -16,10 +16,10 @@ UPLOAD_DIR = "/app/uploads"
 
 @router.post("/upload", response_model=schemas.DocumentRead, status_code=201)
 async def upload_document(
-    project_id: uuid.UUID,
+    project_id: str,
     file: UploadFile = File(...),
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(security.get_current_user)
+    user: User = Depends(security.allow_all_authenticated)
 ):
     repo = DocumentRepository(db)
     doc_id = uuid.uuid4()
@@ -29,7 +29,7 @@ async def upload_document(
         shutil.copyfileobj(file.file, file_object)
     
     db_doc = Document(
-        id=doc_id,
+        id=str(uuid.uuid4()),
         name=file.filename,
         file_path=file_location,
         file_type=file.content_type,
@@ -40,19 +40,19 @@ async def upload_document(
 
 @router.get("/", response_model=List[schemas.DocumentRead])
 async def get_documents(
-    project_id: uuid.UUID,
+    project_id: str,
     db: AsyncSession = Depends(get_db),
-    user: User = Depends(security.get_current_user)
+    user: User = Depends(security.allow_all_authenticated)
 ):
     return await DocumentRepository(db).get_by_project(project_id)
 
 
 @router.put("/{document_id}", response_model=schemas.DocumentRead)
 async def update_document_metadata(
-    project_id: uuid.UUID, document_id: uuid.UUID,
+    project_id: str, document_id: str,
     doc_data: schemas.DocumentUpdate,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(security.get_current_user)
+    current_user: User = Depends(security.allow_managers_and_admins)
 ):
     repo = DocumentRepository(db)
     doc_to_update = await repo.get_by_id(document_id)
@@ -66,7 +66,7 @@ async def update_document_metadata(
 async def delete_document(
     project_id: uuid.UUID, document_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(security.get_current_user)
+    current_user: User = Depends(security.allow_managers_and_admins)
 ):
     repo = DocumentRepository(db)
     doc_to_delete = await repo.get_by_id(document_id)

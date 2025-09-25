@@ -1,12 +1,14 @@
 import uuid
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+import math
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from project_management_api.infrastructure.db.database import get_db
 from project_management_api.application.schemas import ProjectRead, ProjectCreate, ProjectUpdate
 from project_management_api.infrastructure.repositories.project_repository import ProjectRepository
-from project_management_api.domain.models import User
+from project_management_api.domain.models import User, ProjectStatus
 from project_management_api.infrastructure.api import security
+from project_management_api.infrastructure.api.dependencies import get_pagination_params
 from project_management_api.application.services.project_workflow_service import ProjectWorkflowService, QualityGateNotPassedError
 from project_management_api.infrastructure.repositories.document_repository import DocumentRepository
 from project_management_api.application import schemas
@@ -15,13 +17,31 @@ from project_management_api.application.services.notification_service import cre
 router = APIRouter(prefix="/api/projects", tags=["Projects"])
 
 
-@router.get("/", response_model=List[ProjectRead])
-async def get_all_projects(db: AsyncSession = Depends(get_db), current_user: User = Depends(security.get_current_user)):
-    return await ProjectRepository(db).get_all()
+@router.get("/", response_model=schemas.PaginatedResponse[schemas.ProjectRead])
+async def read_projects(
+    pagination: dict = Depends(get_pagination_params),
+    status: Optional[ProjectStatus] = Query(None, description="Filtrar por status do projeto"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(security.get_current_user)
+):
+    page = pagination["page"]
+    size = pagination["size"]
+    skip = (page - 1) * size
+
+    repo = ProjectRepository(db)
+    items, total = await repo.get_all(skip=skip, limit=size, status=status)
+    
+    return schemas.PaginatedResponse(
+        total=total,
+        page=page,
+        size=size,
+        pages=math.ceil(total / size) if total > 0 else 1,
+        items=items
+    )
 
 
 @router.get("/{project_id}", response_model=ProjectRead)
-async def get_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.get_current_user)):
+async def get_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.allow_all_authenticated)):
     project = await ProjectRepository(db).get_by_id(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -29,12 +49,12 @@ async def get_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db),
 
 
 @router.post("/", response_model=ProjectRead, status_code=status.HTTP_201_CREATED)
-async def create_project(p: ProjectCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.get_current_user)):
+async def create_project(p: ProjectCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.allow_managers_and_admins)):
     return await ProjectRepository(db).create(p)
 
 
 @router.put("/{p_id}", response_model=ProjectRead)
-async def update_project(p_id: uuid.UUID, p: ProjectUpdate, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.get_current_user)):
+async def update_project(p_id: uuid.UUID, p: ProjectUpdate, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.allow_managers_and_admins)):
     # Buscar o projeto atual para comparar mudanças
     project_repo = ProjectRepository(db)
     current_project = await project_repo.get_by_id(p_id)
@@ -68,7 +88,7 @@ async def update_project(p_id: uuid.UUID, p: ProjectUpdate, db: AsyncSession = D
 
 
 @router.delete("/{p_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_project(p_id: uuid.UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.get_current_user)):
+async def delete_project(p_id: uuid.UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.allow_only_admins)):
     deleted = await ProjectRepository(db).delete(p_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -76,9 +96,9 @@ async def delete_project(p_id: uuid.UUID, db: AsyncSession = Depends(get_db), cu
 
 @router.post("/{project_id}/advance-phase", response_model=schemas.ProjectRead)
 async def advance_project_phase(
-    project_id: uuid.UUID,
+    project_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(security.get_current_user)
+    current_user: User = Depends(security.allow_managers_and_admins)
 ):
     project_repo = ProjectRepository(db)
     doc_repo = DocumentRepository(db)
