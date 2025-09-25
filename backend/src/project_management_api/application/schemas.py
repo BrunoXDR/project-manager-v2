@@ -7,7 +7,7 @@ from project_management_api.domain.models import ProjectPhase, ProjectStatus, Us
 
 # Schema for representing a user within a project context
 class UserInProject(BaseModel):
-    id: uuid.UUID
+    id: str
     email: str
     
     class Config:
@@ -24,12 +24,12 @@ class ProjectBase(BaseModel):
     pct: Optional[str] = None
     phase: ProjectPhase = ProjectPhase.INCEPTION
     status: ProjectStatus = ProjectStatus.ACTIVE
-    project_manager_id: Optional[uuid.UUID] = None
-    technical_lead_id: Optional[uuid.UUID] = None
+    project_manager_id: Optional[str] = None
+    technical_lead_id: Optional[str] = None
 
 
 class ProjectRead(ProjectBase):
-    id: uuid.UUID
+    id: str
     project_manager: Optional[UserInProject] = None
     technical_lead: Optional[UserInProject] = None
     
@@ -51,8 +51,8 @@ class ProjectUpdate(BaseModel):
     pct: Optional[str] = None
     phase: Optional[ProjectPhase] = None
     status: Optional[ProjectStatus] = None
-    project_manager_id: Optional[uuid.UUID] = None
-    technical_lead_id: Optional[uuid.UUID] = None
+    project_manager_id: Optional[str] = None
+    technical_lead_id: Optional[str] = None
 
 
 class UserBase(BaseModel):
@@ -92,8 +92,8 @@ class TaskBase(BaseModel):
 
 
 class TaskRead(TaskBase):
-    id: uuid.UUID
-    project_id: uuid.UUID
+    id: str
+    project_id: str
     createdAt: datetime
     
     class Config:
@@ -121,16 +121,9 @@ class DocumentBase(BaseModel):
 
 
 class DocumentRead(DocumentBase):
-    id: uuid.UUID
-    project_id: uuid.UUID
-    
-    @computed_field
-    @property
-    def download_url(self) -> str:
-        # O nome do arquivo salvo é o seu ID para evitar colisões e ofuscar nomes.
-        # O NGINX servirá o arquivo a partir desta URL.
-        file_id_str = str(self.id)
-        return f"/uploads/{file_id_str}"
+    id: str
+    project_id: str
+    uploadedAt: datetime
     
     class Config:
         from_attributes = True
