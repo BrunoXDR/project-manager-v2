@@ -7,6 +7,7 @@ from project_management_api.application import schemas
 from project_management_api.domain.models import User
 from project_management_api.infrastructure.api import security
 from project_management_api.infrastructure.repositories.task_repository import TaskRepository
+from project_management_api.application.services.notification_service import create_notification
 
 router = APIRouter(prefix="/api/projects/{project_id}/tasks", tags=["Tasks"])
 
@@ -40,7 +41,18 @@ async def create_task(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(security.get_current_user)
 ):
-    return await TaskRepository(db).create_for_project(project_id, task)
+    created_task = await TaskRepository(db).create_for_project(project_id, task)
+    
+    # Criar notificação se um usuário foi atribuído à tarefa
+    if task.assigned_to_id:
+        await create_notification(
+            db=db,
+            user_id=task.assigned_to_id,
+            message=f"Você foi atribuído à tarefa '{created_task.title}'",
+            link=f"/projects/{project_id}/tasks/{created_task.id}"
+        )
+    
+    return created_task
 
 
 @router.put("/{task_id}", response_model=schemas.TaskRead)
@@ -57,7 +69,20 @@ async def update_task(
     if not task_to_update or task_to_update.project_id != project_id:
         raise HTTPException(status_code=404, detail="Task not found in this project")
     
+    # Salvar o assigned_to_id original antes da atualização
+    original_assigned_to_id = task_to_update.assigned_to_id
+    
     updated_task = await repo.update(task_id, task)
+    
+    # Criar notificação se houve mudança na atribuição de usuário
+    if task.assigned_to_id and task.assigned_to_id != original_assigned_to_id:
+        await create_notification(
+            db=db,
+            user_id=task.assigned_to_id,
+            message=f"Você foi atribuído à tarefa '{updated_task.title}'",
+            link=f"/projects/{project_id}/tasks/{updated_task.id}"
+        )
+    
     return updated_task
 
 

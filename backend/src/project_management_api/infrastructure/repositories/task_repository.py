@@ -3,6 +3,7 @@ from typing import List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import update as sqlalchemy_update, delete as sqlalchemy_delete
+from sqlalchemy.orm import selectinload
 from project_management_api.domain.models import Task
 from project_management_api.application.schemas import TaskCreate, TaskUpdate
 
@@ -16,7 +17,11 @@ class TaskRepository:
         return result.scalars().all()
 
     async def get_by_id(self, task_id: uuid.UUID) -> Optional[Task]:
-        result = await self.db.execute(select(Task).filter(Task.id == task_id))
+        result = await self.db.execute(
+            select(Task)
+            .options(selectinload(Task.assigned_to))
+            .filter(Task.id == task_id)
+        )
         return result.scalars().first()
 
     async def create_for_project(self, project_id: uuid.UUID, task: TaskCreate) -> Task:
@@ -24,17 +29,21 @@ class TaskRepository:
         self.db.add(db_task)
         await self.db.commit()
         await self.db.refresh(db_task)
-        return db_task
+        
+        # Recarregar a tarefa com os relacionamentos
+        return await self.get_by_id(db_task.id)
 
     async def update(self, task_id: uuid.UUID, task: TaskUpdate) -> Optional[Task]:
         update_data = task.model_dump(exclude_unset=True)
         if not update_data:
             return await self.get_by_id(task_id)
         
-        q = sqlalchemy_update(Task).where(Task.id == task_id).values(update_data).returning(Task)
-        res = await self.db.execute(q)
+        q = sqlalchemy_update(Task).where(Task.id == task_id).values(update_data)
+        await self.db.execute(q)
         await self.db.commit()
-        return res.scalars().first()
+        
+        # Recarregar a tarefa com os relacionamentos
+        return await self.get_by_id(task_id)
         
     async def delete(self, task_id: uuid.UUID) -> bool:
         q = sqlalchemy_delete(Task).where(Task.id == task_id)

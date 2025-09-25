@@ -14,6 +14,15 @@ class UserInProject(BaseModel):
         from_attributes = True
 
 
+# Schema for representing a user within a task context
+class UserInTask(BaseModel):
+    id: uuid.UUID
+    email: str
+    
+    class Config:
+        from_attributes = True
+
+
 class ProjectBase(BaseModel):
     name: str
     client: str
@@ -89,12 +98,14 @@ class TaskBase(BaseModel):
     status: TaskStatus = TaskStatus.TODO
     priority: TaskPriority = TaskPriority.MEDIUM
     dueDate: Optional[date] = None
+    assigned_to_id: Optional[uuid.UUID] = None
 
 
 class TaskRead(TaskBase):
     id: uuid.UUID
     project_id: uuid.UUID
     createdAt: datetime
+    assigned_to: Optional[UserInTask] = None
     
     class Config:
         from_attributes = True
@@ -110,6 +121,7 @@ class TaskUpdate(BaseModel):
     status: Optional[TaskStatus] = None
     priority: Optional[TaskPriority] = None
     dueDate: Optional[date] = None
+    assigned_to_id: Optional[uuid.UUID] = None
 
 
 class DocumentBase(BaseModel):

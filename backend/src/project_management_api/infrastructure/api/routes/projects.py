@@ -10,6 +10,7 @@ from project_management_api.infrastructure.api import security
 from project_management_api.application.services.project_workflow_service import ProjectWorkflowService, QualityGateNotPassedError
 from project_management_api.infrastructure.repositories.document_repository import DocumentRepository
 from project_management_api.application import schemas
+from project_management_api.application.services.notification_service import create_notification
 
 router = APIRouter(prefix="/api/projects", tags=["Projects"])
 
@@ -34,9 +35,35 @@ async def create_project(p: ProjectCreate, db: AsyncSession = Depends(get_db), c
 
 @router.put("/{p_id}", response_model=ProjectRead)
 async def update_project(p_id: uuid.UUID, p: ProjectUpdate, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.get_current_user)):
-    proj = await ProjectRepository(db).update(p_id, p)
+    # Buscar o projeto atual para comparar mudanças
+    project_repo = ProjectRepository(db)
+    current_project = await project_repo.get_by_id(p_id)
+    if not current_project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Atualizar o projeto
+    proj = await project_repo.update(p_id, p)
     if not proj:
         raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Verificar se houve mudança no Project Manager (GP)
+    if p.project_manager_id and p.project_manager_id != current_project.project_manager_id:
+        await create_notification(
+            db=db,
+            user_id=p.project_manager_id,
+            message=f"Você foi designado como Gerente de Projeto (GP) do projeto '{proj.name}'",
+            link=f"/projects/{proj.id}"
+        )
+    
+    # Verificar se houve mudança no Technical Lead (LT)
+    if p.technical_lead_id and p.technical_lead_id != current_project.technical_lead_id:
+        await create_notification(
+            db=db,
+            user_id=p.technical_lead_id,
+            message=f"Você foi designado como Líder Técnico (LT) do projeto '{proj.name}'",
+            link=f"/projects/{proj.id}"
+        )
+    
     return proj
 
 

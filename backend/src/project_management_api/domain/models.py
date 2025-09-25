@@ -92,8 +92,10 @@ class Task(Base):
     dueDate = Column(SQLDate)
     createdAt = Column(DateTime, default=datetime.utcnow)
     project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
+    assigned_to_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     
     project = relationship("Project")
+    assigned_to = relationship("User")
 
 
 class Notification(Base):
