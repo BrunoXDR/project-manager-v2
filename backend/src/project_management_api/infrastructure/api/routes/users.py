@@ -24,3 +24,10 @@ async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_d
     await db.commit()
     await db.refresh(db_user)
     return db_user
+
+@router.get("/me", response_model=schemas.UserRead,
+    summary="Dados do Usuário Atual",
+    description="Retorna os dados do usuário atualmente autenticado. Requer autenticação válida."
+)
+async def get_current_user_data(current_user: User = Depends(security.get_current_user)):
+    return current_user

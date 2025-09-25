@@ -1,30 +1,72 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { StatusBadge, PhaseBadge } from "@/components/ui/status-badge";
-import { mockProjects } from "@/data/mockData";
-import { Plus, Search, Filter, Eye } from "lucide-react";
+import { projectsAPI } from "@/lib/apiClient";
+import { Plus, Search, Filter, Eye, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ProjectStatus, ProjectPhase } from "@/types/project";
+import type { Project, ProjectsResponse } from "@/lib/apiClient";
 
 const Projects = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [phaseFilter, setPhaseFilter] = useState<string>("all");
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProjects, setTotalProjects] = useState(0);
 
-  // Filter projects based on search and filters
-  const filteredProjects = mockProjects.filter((project) => {
+  // Fetch projects from API
+  const fetchProjects = async (page: number = 1) => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await projectsAPI.getProjects(page);
+      setProjects(response.items);
+      setCurrentPage(response.page);
+      setTotalPages(response.pages);
+      setTotalProjects(response.total);
+    } catch (err) {
+      setError("Erro ao carregar projetos. Tente novamente.");
+      console.error("Error fetching projects:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProjects(currentPage);
+  }, [currentPage]);
+
+  // Filter projects based on search and filters (client-side filtering)
+  const filteredProjects = projects.filter((project) => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         project.projectManager?.toLowerCase().includes(searchTerm.toLowerCase());
+                         project.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         project.manager?.full_name?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = statusFilter === "all" || project.status === statusFilter;
-    const matchesPhase = phaseFilter === "all" || project.phase === phaseFilter;
+    // Note: API project doesn't have phase, so we'll skip phase filtering for now
+    const matchesPhase = phaseFilter === "all"; // Always true since API doesn't have phase
 
     return matchesSearch && matchesStatus && matchesPhase;
   });
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -97,7 +139,25 @@ const Projects = () => {
 
       {/* Projects List */}
       <div className="grid gap-4">
-        {filteredProjects.length === 0 ? (
+        {loading ? (
+          <Card className="border-card-border">
+            <CardContent className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">Carregando projetos...</h3>
+            </CardContent>
+          </Card>
+        ) : error ? (
+          <Card className="border-card-border">
+            <CardContent className="text-center py-12">
+              <Filter className="mx-auto h-12 w-12 text-red-500 mb-4" />
+              <h3 className="text-lg font-semibold text-foreground mb-2">Erro ao carregar projetos</h3>
+              <p className="text-text-secondary mb-4">{error}</p>
+              <Button onClick={() => fetchProjects(currentPage)} variant="outline">
+                Tentar novamente
+              </Button>
+            </CardContent>
+          </Card>
+        ) : filteredProjects.length === 0 ? (
           <Card className="border-card-border">
             <CardContent className="text-center py-12">
               <Filter className="mx-auto h-12 w-12 text-text-tertiary mb-4" />
@@ -115,27 +175,27 @@ const Projects = () => {
                   <div className="flex-1">
                     <div className="flex items-center space-x-3 mb-3">
                       <h3 className="text-xl font-semibold text-foreground">{project.name}</h3>
-                      <StatusBadge status={project.status} />
-                      <PhaseBadge phase={project.phase} />
+                      <StatusBadge status={project.status as ProjectStatus} />
+                      {/* Phase badge removed since API doesn't have phase */}
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
                       <div>
-                        <span className="text-text-secondary">Cliente:</span>
-                        <p className="font-medium text-foreground">{project.client}</p>
+                        <span className="text-text-secondary">Status:</span>
+                        <p className="font-medium text-foreground">{project.status}</p>
                       </div>
                       <div>
-                        <span className="text-text-secondary">Valor OV:</span>
-                        <p className="font-medium text-foreground">{project.orderValue}</p>
+                        <span className="text-text-secondary">Prioridade:</span>
+                        <p className="font-medium text-foreground">{project.priority}</p>
                       </div>
                       <div>
-                        <span className="text-text-secondary">GP:</span>
-                        <p className="font-medium text-foreground">{project.projectManager}</p>
+                        <span className="text-text-secondary">Gerente:</span>
+                        <p className="font-medium text-foreground">{project.manager?.full_name || 'Não atribuído'}</p>
                       </div>
                       <div>
-                        <span className="text-text-secondary">Previsão:</span>
+                        <span className="text-text-secondary">Data Final:</span>
                         <p className="font-medium text-foreground">
-                          {new Date(project.estimatedEndDate).toLocaleDateString('pt-BR')}
+                          {project.end_date ? new Date(project.end_date).toLocaleDateString('pt-BR') : 'Não definida'}
                         </p>
                       </div>
                     </div>
@@ -162,10 +222,39 @@ const Projects = () => {
         )}
       </div>
 
+      {/* Pagination */}
+      {!loading && !error && totalPages > 1 && (
+        <div className="flex items-center justify-center space-x-4">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePreviousPage}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Anterior
+          </Button>
+          
+          <span className="text-sm text-text-secondary">
+            Página {currentPage} de {totalPages}
+          </span>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNextPage}
+            disabled={currentPage === totalPages}
+          >
+            Próxima
+            <ChevronRight className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Results count */}
-      {filteredProjects.length > 0 && (
+      {!loading && !error && filteredProjects.length > 0 && (
         <div className="text-center text-text-secondary text-sm">
-          Mostrando {filteredProjects.length} de {mockProjects.length} projetos
+          Mostrando {filteredProjects.length} de {totalProjects} projetos
         </div>
       )}
     </div>
