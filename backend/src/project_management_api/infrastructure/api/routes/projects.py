@@ -15,12 +15,12 @@ router = APIRouter(prefix="/api/projects", tags=["Projects"])
 
 
 @router.get("/", response_model=List[ProjectRead])
-async def get_all_projects(db: AsyncSession = Depends(get_db), current_user: User = Depends(security.get_current_user)):
+async def get_all_projects(db: AsyncSession = Depends(get_db), current_user: User = Depends(security.allow_all_authenticated)):
     return await ProjectRepository(db).get_all()
 
 
 @router.get("/{project_id}", response_model=ProjectRead)
-async def get_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.get_current_user)):
+async def get_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.allow_all_authenticated)):
     project = await ProjectRepository(db).get_by_id(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -28,12 +28,12 @@ async def get_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db),
 
 
 @router.post("/", response_model=ProjectRead, status_code=status.HTTP_201_CREATED)
-async def create_project(p: ProjectCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.get_current_user)):
+async def create_project(p: ProjectCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.allow_managers_and_admins)):
     return await ProjectRepository(db).create(p)
 
 
 @router.put("/{p_id}", response_model=ProjectRead)
-async def update_project(p_id: uuid.UUID, p: ProjectUpdate, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.get_current_user)):
+async def update_project(p_id: uuid.UUID, p: ProjectUpdate, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.allow_managers_and_admins)):
     proj = await ProjectRepository(db).update(p_id, p)
     if not proj:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -41,7 +41,7 @@ async def update_project(p_id: uuid.UUID, p: ProjectUpdate, db: AsyncSession = D
 
 
 @router.delete("/{p_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_project(p_id: uuid.UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.get_current_user)):
+async def delete_project(p_id: uuid.UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.allow_only_admins)):
     deleted = await ProjectRepository(db).delete(p_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -51,7 +51,7 @@ async def delete_project(p_id: uuid.UUID, db: AsyncSession = Depends(get_db), cu
 async def advance_project_phase(
     project_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(security.get_current_user)
+    current_user: User = Depends(security.allow_managers_and_admins)
 ):
     project_repo = ProjectRepository(db)
     doc_repo = DocumentRepository(db)
