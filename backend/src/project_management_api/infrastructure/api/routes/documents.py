@@ -14,7 +14,10 @@ router = APIRouter(prefix="/api/projects/{project_id}/documents", tags=["Documen
 UPLOAD_DIR = "/app/uploads"
 
 
-@router.post("/upload", response_model=schemas.DocumentRead, status_code=201)
+@router.post("/upload", response_model=schemas.DocumentRead, status_code=201,
+    summary="Upload de Documento",
+    description="Faz upload de um arquivo para um projeto específico. O arquivo é armazenado no sistema de arquivos e os metadados no banco de dados. Requer autenticação de qualquer usuário válido."
+)
 async def upload_document(
     project_id: str,
     file: UploadFile = File(...),
@@ -38,7 +41,10 @@ async def upload_document(
     return await repo.create(db_doc)
 
 
-@router.get("/", response_model=List[schemas.DocumentRead])
+@router.get("/", response_model=List[schemas.DocumentRead],
+    summary="Lista Documentos do Projeto",
+    description="Retorna todos os documentos associados a um projeto específico. Requer autenticação de qualquer usuário válido."
+)
 async def get_documents(
     project_id: str,
     db: AsyncSession = Depends(get_db),
@@ -47,7 +53,10 @@ async def get_documents(
     return await DocumentRepository(db).get_by_project(project_id)
 
 
-@router.put("/{document_id}", response_model=schemas.DocumentRead)
+@router.put("/{document_id}", response_model=schemas.DocumentRead,
+    summary="Atualiza Metadados do Documento",
+    description="Atualiza os metadados de um documento existente (nome, descrição, etc.). Valida se o documento pertence ao projeto informado. Requer permissão de MANAGER ou ADMIN."
+)
 async def update_document_metadata(
     project_id: str, document_id: str,
     doc_data: schemas.DocumentUpdate,
@@ -62,7 +71,10 @@ async def update_document_metadata(
     return await repo.update(document_id, doc_data)
 
 
-@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{document_id}", status_code=status.HTTP_204_NO_CONTENT,
+    summary="Exclui um Documento",
+    description="Remove permanentemente um documento do projeto, incluindo o arquivo físico do sistema de arquivos. Valida se o documento pertence ao projeto informado. Requer permissão de MANAGER ou ADMIN."
+)
 async def delete_document(
     project_id: uuid.UUID, document_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),

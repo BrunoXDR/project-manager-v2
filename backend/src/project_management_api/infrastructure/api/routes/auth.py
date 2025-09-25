@@ -11,7 +11,10 @@ from project_management_api.application.services import audit_service
 
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
-@router.post("/token", response_model=schemas.Token)
+@router.post("/token", response_model=schemas.Token,
+    summary="Autenticação de Usuário",
+    description="Realiza login do usuário no sistema usando email e senha. Retorna um token JWT para autenticação em endpoints protegidos. Registra automaticamente um log de auditoria do login."
+)
 async def login_for_access_token(db: AsyncSession = Depends(get_db), form_data: OAuth2PasswordRequestForm = Depends()):
     repo = UserRepository(db)
     user = await repo.get_by_email(email=form_data.username)

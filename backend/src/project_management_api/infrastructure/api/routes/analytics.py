@@ -11,7 +11,10 @@ from project_management_api.infrastructure.repositories.project_repository impor
 
 router = APIRouter(prefix="/api/analytics", tags=["Analytics"])
 
-@router.get("/projects-by-status", response_model=List[schemas.AnalyticsStat])
+@router.get("/projects-by-status", response_model=List[schemas.AnalyticsStat],
+    summary="Projetos por Status",
+    description="Retorna estatísticas de contagem de projetos agrupados por status (ativo, concluído, cancelado, etc.). Requer autenticação de qualquer usuário válido."
+)
 async def get_projects_by_status(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(security.get_current_user)
@@ -20,7 +23,10 @@ async def get_projects_by_status(
     stats_tuples = await repo.count_by_status()
     return [schemas.AnalyticsStat(category=status.value, count=count) for status, count in stats_tuples]
 
-@router.get("/projects-by-phase", response_model=List[schemas.AnalyticsStat])
+@router.get("/projects-by-phase", response_model=List[schemas.AnalyticsStat],
+    summary="Projetos por Fase",
+    description="Retorna estatísticas de contagem de projetos agrupados por fase do workflow (iniciação, planejamento, execução, etc.). Requer autenticação de qualquer usuário válido."
+)
 async def get_projects_by_phase(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(security.get_current_user)
@@ -29,12 +35,18 @@ async def get_projects_by_phase(
     stats_tuples = await repo.count_by_phase()
     return [schemas.AnalyticsStat(category=phase.value, count=count) for phase, count in stats_tuples]
 
-@router.get("/debug/sentry-test")
+@router.get("/debug/sentry-test",
+    summary="Teste de Erro (Debug)",
+    description="Endpoint de debug que gera um erro intencional para testar o sistema de monitoramento Sentry. Não deve ser usado em produção."
+)
 async def trigger_error():
     division_by_zero = 1 / 0
     return {"result": division_by_zero}  # Esta linha nunca será alcançada
 
-@router.get("/projects-by-pm", response_model=List[schemas.AnalyticsStat])
+@router.get("/projects-by-pm", response_model=List[schemas.AnalyticsStat],
+    summary="Projetos por Project Manager",
+    description="Retorna estatísticas de contagem de projetos agrupados por Project Manager (GP). Mostra 'Unassigned' para projetos sem GP atribuído. Requer autenticação de qualquer usuário válido."
+)
 async def get_projects_by_project_manager(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(security.get_current_user)
@@ -43,7 +55,10 @@ async def get_projects_by_project_manager(
     stats_tuples = await repo.count_by_project_manager()
     return [schemas.AnalyticsStat(category=email or "Unassigned", count=count) for email, count in stats_tuples]
 
-@router.get("/projects-by-tl", response_model=List[schemas.AnalyticsStat])
+@router.get("/projects-by-tl", response_model=List[schemas.AnalyticsStat],
+    summary="Projetos por Technical Lead",
+    description="Retorna estatísticas de contagem de projetos agrupados por Technical Lead (LT). Mostra 'Unassigned' para projetos sem LT atribuído. Requer autenticação de qualquer usuário válido."
+)
 async def get_projects_by_technical_lead(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(security.get_current_user)
@@ -52,7 +67,10 @@ async def get_projects_by_technical_lead(
     stats_tuples = await repo.count_by_technical_lead()
     return [schemas.AnalyticsStat(category=email or "Unassigned", count=count) for email, count in stats_tuples]
 
-@router.get("/projects-by-client", response_model=List[schemas.AnalyticsStat])
+@router.get("/projects-by-client", response_model=List[schemas.AnalyticsStat],
+    summary="Projetos por Cliente",
+    description="Retorna estatísticas de contagem de projetos agrupados por cliente. Requer autenticação de qualquer usuário válido."
+)
 async def get_projects_by_client(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(security.get_current_user)
@@ -61,7 +79,10 @@ async def get_projects_by_client(
     stats_tuples = await repo.count_by_client()
     return [schemas.AnalyticsStat(category=client, count=count) for client, count in stats_tuples]
 
-@router.get("/overdue-projects", response_model=List[schemas.ProjectRead])
+@router.get("/overdue-projects", response_model=List[schemas.ProjectRead],
+    summary="Projetos em Atraso",
+    description="Retorna uma lista de projetos em atraso. Um projeto é considerado em atraso se a data de término estimada passou e seu status ainda é 'ativo' ou 'em espera'. Requer autenticação de qualquer usuário válido."
+)
 async def get_overdue_projects(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(security.get_current_user)

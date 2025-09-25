@@ -18,7 +18,10 @@ from project_management_api.application.services import audit_service
 router = APIRouter(prefix="/api/projects", tags=["Projects"])
 
 
-@router.get("/", response_model=schemas.PaginatedResponse[schemas.ProjectRead])
+@router.get("/", response_model=schemas.PaginatedResponse[schemas.ProjectRead],
+    summary="Lista Projetos com Paginação",
+    description="Retorna uma lista paginada de todos os projetos do sistema. Permite filtrar por status do projeto. Requer autenticação de qualquer usuário válido."
+)
 async def read_projects(
     pagination: dict = Depends(get_pagination_params),
     status: Optional[ProjectStatus] = Query(None, description="Filtrar por status do projeto"),
@@ -41,7 +44,10 @@ async def read_projects(
     )
 
 
-@router.get("/{project_id}", response_model=ProjectRead)
+@router.get("/{project_id}", response_model=ProjectRead,
+    summary="Busca Projeto por ID",
+    description="Retorna os detalhes completos de um projeto específico pelo seu ID único. Requer autenticação de qualquer usuário válido."
+)
 async def get_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.allow_all_authenticated)):
     project = await ProjectRepository(db).get_by_id(project_id)
     if not project:
@@ -49,7 +55,10 @@ async def get_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db),
     return project
 
 
-@router.post("/", response_model=ProjectRead, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=ProjectRead, status_code=status.HTTP_201_CREATED,
+    summary="Cria um Novo Projeto",
+    description="Cria um novo projeto no sistema com os dados fornecidos. Registra automaticamente um log de auditoria da criação. Requer permissão de MANAGER ou ADMIN."
+)
 async def create_project(p: ProjectCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.allow_managers_and_admins)):
     repo = ProjectRepository(db)
     new_project = await repo.create(p)
@@ -65,7 +74,10 @@ async def create_project(p: ProjectCreate, db: AsyncSession = Depends(get_db), c
     return new_project
 
 
-@router.put("/{p_id}", response_model=ProjectRead)
+@router.put("/{p_id}", response_model=ProjectRead,
+    summary="Atualiza um Projeto Existente",
+    description="Atualiza os dados de um projeto existente. Envia notificações automáticas quando há mudança de Project Manager ou Technical Lead. Registra log de auditoria da atualização. Requer permissão de MANAGER ou ADMIN."
+)
 async def update_project(p_id: uuid.UUID, p: ProjectUpdate, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.allow_managers_and_admins)):
     # Buscar o projeto atual para comparar mudanças
     project_repo = ProjectRepository(db)
@@ -107,7 +119,10 @@ async def update_project(p_id: uuid.UUID, p: ProjectUpdate, db: AsyncSession = D
     return proj
 
 
-@router.delete("/{p_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{p_id}", status_code=status.HTTP_204_NO_CONTENT,
+    summary="Exclui um Projeto",
+    description="Remove permanentemente um projeto do sistema. Registra log de auditoria da exclusão. Requer permissão de ADMIN apenas."
+)
 async def delete_project(p_id: uuid.UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.allow_only_admins)):
     project_repo = ProjectRepository(db)
     project = await project_repo.get_by_id(p_id)
@@ -127,7 +142,10 @@ async def delete_project(p_id: uuid.UUID, db: AsyncSession = Depends(get_db), cu
         raise HTTPException(status_code=404, detail="Project not found")
 
 
-@router.post("/{project_id}/advance-phase", response_model=schemas.ProjectRead)
+@router.post("/{project_id}/advance-phase", response_model=schemas.ProjectRead,
+    summary="Avança Fase do Projeto",
+    description="Avança o projeto para a próxima fase do workflow, validando os quality gates necessários. Registra log de auditoria do avanço. Requer permissão de MANAGER ou ADMIN."
+)
 async def advance_project_phase(
     project_id: str,
     db: AsyncSession = Depends(get_db),

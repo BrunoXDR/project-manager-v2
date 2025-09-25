@@ -8,7 +8,10 @@ from project_management_api.infrastructure.repositories.user_repository import U
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
 
-@router.post("/", response_model=schemas.UserRead, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.UserRead, status_code=status.HTTP_201_CREATED,
+    summary="Cria Novo Usuário",
+    description="Registra um novo usuário no sistema com email, senha e role. Valida se o email já não está em uso. Não requer autenticação para permitir auto-registro."
+)
 async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_db)):
     repo = UserRepository(db)
     db_user = await repo.get_by_email(email=user.email)
