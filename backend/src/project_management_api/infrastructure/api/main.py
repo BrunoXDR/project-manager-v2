@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 import sentry_sdk
 import os
-from .routes import projects, users, auth, tasks, documents, analytics
+from .routes import projects, users, auth, tasks, documents, analytics, notifications
 from .middleware import LoggingMiddleware
 
 # Inicializar Sentry se o DSN estiver disponível
@@ -30,6 +30,7 @@ app.include_router(users.router)
 app.include_router(tasks.router)
 app.include_router(documents.router)
 app.include_router(analytics.router)
+app.include_router(notifications.router)
 
 # Adicionar middleware de logging
 app.add_middleware(LoggingMiddleware)
