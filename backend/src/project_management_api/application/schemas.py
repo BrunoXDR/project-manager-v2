@@ -1,8 +1,17 @@
 import uuid
 from datetime import date, datetime
-from pydantic import BaseModel, computed_field
-from typing import Optional, Any
+from pydantic import BaseModel, computed_field, Field
+from typing import Optional, Any, Generic, TypeVar, List
 from project_management_api.domain.models import ProjectPhase, ProjectStatus, UserRole, TaskStatus, TaskPriority, DocumentStatus
+
+T = TypeVar('T')
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    total: int = Field(..., description="Número total de itens")
+    page: int = Field(..., gt=0, description="Número da página atual")
+    size: int = Field(..., gt=0, description="Número de itens por página")
+    pages: int = Field(..., description="Número total de páginas")
+    items: List[T] = Field(..., description="Lista de itens para a página atual")
 
 
 # Schema for representing a user within a project context

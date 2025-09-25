@@ -1,12 +1,14 @@
 import uuid
-from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status
+import math
+from typing import List, Optional
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from project_management_api.infrastructure.db.database import get_db
 from project_management_api.application.schemas import ProjectRead, ProjectCreate, ProjectUpdate
 from project_management_api.infrastructure.repositories.project_repository import ProjectRepository
-from project_management_api.domain.models import User
+from project_management_api.domain.models import User, ProjectStatus
 from project_management_api.infrastructure.api import security
+from project_management_api.infrastructure.api.dependencies import get_pagination_params
 from project_management_api.application.services.project_workflow_service import ProjectWorkflowService, QualityGateNotPassedError
 from project_management_api.infrastructure.repositories.document_repository import DocumentRepository
 from project_management_api.application import schemas
@@ -14,9 +16,27 @@ from project_management_api.application import schemas
 router = APIRouter(prefix="/api/projects", tags=["Projects"])
 
 
-@router.get("/", response_model=List[ProjectRead])
-async def get_all_projects(db: AsyncSession = Depends(get_db), current_user: User = Depends(security.allow_all_authenticated)):
-    return await ProjectRepository(db).get_all()
+@router.get("/", response_model=schemas.PaginatedResponse[schemas.ProjectRead])
+async def read_projects(
+    pagination: dict = Depends(get_pagination_params),
+    status: Optional[ProjectStatus] = Query(None, description="Filtrar por status do projeto"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(security.get_current_user)
+):
+    page = pagination["page"]
+    size = pagination["size"]
+    skip = (page - 1) * size
+
+    repo = ProjectRepository(db)
+    items, total = await repo.get_all(skip=skip, limit=size, status=status)
+    
+    return schemas.PaginatedResponse(
+        total=total,
+        page=page,
+        size=size,
+        pages=math.ceil(total / size) if total > 0 else 1,
+        items=items
+    )
 
 
 @router.get("/{project_id}", response_model=ProjectRead)
