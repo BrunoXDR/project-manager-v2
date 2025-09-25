@@ -13,6 +13,7 @@ from project_management_api.application.services.project_workflow_service import
 from project_management_api.infrastructure.repositories.document_repository import DocumentRepository
 from project_management_api.application import schemas
 from project_management_api.application.services.notification_service import create_notification
+from project_management_api.application.services import audit_service
 
 router = APIRouter(prefix="/api/projects", tags=["Projects"])
 
@@ -50,7 +51,18 @@ async def get_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db),
 
 @router.post("/", response_model=ProjectRead, status_code=status.HTTP_201_CREATED)
 async def create_project(p: ProjectCreate, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.allow_managers_and_admins)):
-    return await ProjectRepository(db).create(p)
+    repo = ProjectRepository(db)
+    new_project = await repo.create(p)
+    
+    # Registrar log de auditoria para criação de projeto
+    await audit_service.create_audit_log(
+        db, 
+        user=current_user, 
+        action="PROJECT_CREATED", 
+        details={"project_id": str(new_project.id), "project_name": new_project.name}
+    )
+    
+    return new_project
 
 
 @router.put("/{p_id}", response_model=ProjectRead)
@@ -65,6 +77,14 @@ async def update_project(p_id: uuid.UUID, p: ProjectUpdate, db: AsyncSession = D
     proj = await project_repo.update(p_id, p)
     if not proj:
         raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Registrar log de auditoria para atualização de projeto
+    await audit_service.create_audit_log(
+        db, 
+        user=current_user, 
+        action="PROJECT_UPDATED", 
+        details={"project_id": str(p_id), "project_name": proj.name}
+    )
     
     # Verificar se houve mudança no Project Manager (GP)
     if p.project_manager_id and p.project_manager_id != current_project.project_manager_id:
@@ -89,7 +109,20 @@ async def update_project(p_id: uuid.UUID, p: ProjectUpdate, db: AsyncSession = D
 
 @router.delete("/{p_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_project(p_id: uuid.UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.allow_only_admins)):
-    deleted = await ProjectRepository(db).delete(p_id)
+    project_repo = ProjectRepository(db)
+    project = await project_repo.get_by_id(p_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Registrar log de auditoria antes de deletar o projeto
+    await audit_service.create_audit_log(
+        db, 
+        user=current_user, 
+        action="PROJECT_DELETED", 
+        details={"project_id": str(p_id), "project_name": project.name}
+    )
+    
+    deleted = await project_repo.delete(p_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Project not found")
 
@@ -116,7 +149,22 @@ async def advance_project_phase(
         updated_project = workflow_service.advance_phase(project, documents)
         
         # Se a validação passar, o serviço modifica o objeto. Agora, salvamos.
-        return await project_repo.update(project_id, schemas.ProjectUpdate(phase=updated_project.phase))
+        result = await project_repo.update(project_id, schemas.ProjectUpdate(phase=updated_project.phase))
+        
+        # Registrar log de auditoria para avanço de fase
+        await audit_service.create_audit_log(
+            db, 
+            user=current_user, 
+            action="PROJECT_PHASE_ADVANCED", 
+            details={
+                "project_id": str(project_id), 
+                "project_name": project.name,
+                "old_phase": project.phase.value,
+                "new_phase": updated_project.phase.value
+            }
+        )
+        
+        return result
 
     except QualityGateNotPassedError as e:
         # Se o Quality Gate falhar, retorna um erro 400 com os detalhes

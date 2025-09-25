@@ -173,3 +173,14 @@ class NotificationRead(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+class AuditLogRead(BaseModel):
+    id: str
+    user: Optional[UserInProject] = None  # Reutiliza o schema de usuário
+    action: str
+    details: Optional[dict] = None
+    timestamp: datetime
+    
+    class Config:
+        from_attributes = True
