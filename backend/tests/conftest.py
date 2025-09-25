@@ -89,3 +89,35 @@ async def authenticated_client(client, test_user):
     client.headers.update({"Authorization": f"Bearer {access_token}"})
     
     return client
+
+@pytest_asyncio.fixture
+async def create_test_project(authenticated_client):
+    """Helper fixture para criar um projeto e retornar seu ID."""
+    async def _create_project():
+        project_data = {
+            "name": "Projeto para Teste",
+            "client": "Cliente de Teste",
+            "startDate": "2025-01-01",
+            "estimatedEndDate": "2025-12-31"
+        }
+        response = await authenticated_client.post("/api/projects/", json=project_data)
+        assert response.status_code == 201
+        return response.json()["id"]
+    return _create_project
+
+@pytest_asyncio.fixture
+async def temp_upload_dir(monkeypatch):
+    """Fixture para criar um diretório temporário para uploads durante os testes."""
+    import tempfile
+    import shutil
+    
+    # Criar diretório temporário
+    temp_dir = tempfile.mkdtemp()
+    
+    # Monkeypatch do UPLOAD_DIR na rota de documentos
+    monkeypatch.setattr("project_management_api.infrastructure.api.routes.documents.UPLOAD_DIR", temp_dir)
+    
+    yield temp_dir
+    
+    # Cleanup: remover diretório temporário após o teste
+    shutil.rmtree(temp_dir, ignore_errors=True)

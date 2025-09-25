@@ -4,20 +4,8 @@ from httpx import AsyncClient
 
 pytestmark = pytest.mark.asyncio
 
-async def create_test_project(client: AsyncClient) -> str:
-    """Helper para criar um projeto e retornar seu ID."""
-    project_data = {
-        "name": "Projeto para Teste de Tarefas",
-        "client": "Cliente de Teste",
-        "startDate": "2025-01-01",
-        "estimatedEndDate": "2025-12-31"
-    }
-    response = await client.post("/api/projects/", json=project_data)
-    assert response.status_code == 201
-    return response.json()["id"]
-
-async def test_create_and_read_task(authenticated_client: AsyncClient):
-    project_id = await create_test_project(authenticated_client)
+async def test_create_and_read_task(authenticated_client: AsyncClient, create_test_project):
+    project_id = await create_test_project()
     task_data = {
         "title": "Nova Tarefa de Teste",
         "description": "Descrição da tarefa.",
@@ -39,8 +27,8 @@ async def test_create_and_read_task(authenticated_client: AsyncClient):
     assert len(tasks_list) == 1
     assert tasks_list[0]["id"] == created_task["id"]
 
-async def test_update_and_delete_task(authenticated_client: AsyncClient):
-    project_id = await create_test_project(authenticated_client)
+async def test_update_and_delete_task(authenticated_client: AsyncClient, create_test_project):
+    project_id = await create_test_project()
     task_data = {"title": "Tarefa para Atualizar e Deletar"}
     response = await authenticated_client.post(f"/api/projects/{project_id}/tasks/", json=task_data)
     task_id = response.json()["id"]
