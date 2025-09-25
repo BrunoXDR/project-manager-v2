@@ -20,7 +20,7 @@ async def get_all_projects(db: AsyncSession = Depends(get_db), current_user: Use
 
 
 @router.get("/{project_id}", response_model=ProjectRead)
-async def get_project(project_id: uuid.UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.get_current_user)):
+async def get_project(project_id: str, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.get_current_user)):
     project = await ProjectRepository(db).get_by_id(project_id)
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -33,7 +33,7 @@ async def create_project(p: ProjectCreate, db: AsyncSession = Depends(get_db), c
 
 
 @router.put("/{p_id}", response_model=ProjectRead)
-async def update_project(p_id: uuid.UUID, p: ProjectUpdate, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.get_current_user)):
+async def update_project(p_id: str, p: ProjectUpdate, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.get_current_user)):
     proj = await ProjectRepository(db).update(p_id, p)
     if not proj:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -41,7 +41,7 @@ async def update_project(p_id: uuid.UUID, p: ProjectUpdate, db: AsyncSession = D
 
 
 @router.delete("/{p_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_project(p_id: uuid.UUID, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.get_current_user)):
+async def delete_project(p_id: str, db: AsyncSession = Depends(get_db), current_user: User = Depends(security.get_current_user)):
     deleted = await ProjectRepository(db).delete(p_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -49,7 +49,7 @@ async def delete_project(p_id: uuid.UUID, db: AsyncSession = Depends(get_db), cu
 
 @router.post("/{project_id}/advance-phase", response_model=schemas.ProjectRead)
 async def advance_project_phase(
-    project_id: uuid.UUID,
+    project_id: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(security.get_current_user)
 ):
