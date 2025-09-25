@@ -1,0 +1,2626 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Sistema de Gestão de Projetos API",
+    "description": "API para gerenciar o ciclo de vida de projetos.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/auth/token": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Autenticação de Usuário",
+        "description": "Realiza login do usuário no sistema usando email e senha. Retorna um token JWT para autenticação em endpoints protegidos. Registra automaticamente um log de auditoria do login.",
+        "operationId": "login_for_access_token_api_auth_token_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_login_for_access_token_api_auth_token_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Token"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Lista Projetos com Paginação",
+        "description": "Retorna uma lista paginada de todos os projetos do sistema. Permite filtrar por status do projeto. Requer autenticação de qualquer usuário válido.",
+        "operationId": "read_projects_api_projects__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/ProjectStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filtrar por status do projeto",
+              "title": "Status"
+            },
+            "description": "Filtrar por status do projeto"
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "description": "Número da página",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Número da página"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "exclusiveMinimum": 0,
+              "description": "Tamanho da página",
+              "default": 20,
+              "title": "Size"
+            },
+            "description": "Tamanho da página"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_ProjectRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Cria um Novo Projeto",
+        "description": "Cria um novo projeto no sistema com os dados fornecidos. Registra automaticamente um log de auditoria da criação. Requer permissão de MANAGER ou ADMIN.",
+        "operationId": "create_project_api_projects__post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Busca Projeto por ID",
+        "description": "Retorna os detalhes completos de um projeto específico pelo seu ID único. Requer autenticação de qualquer usuário válido.",
+        "operationId": "get_project_api_projects__project_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{p_id}": {
+      "put": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Atualiza um Projeto Existente",
+        "description": "Atualiza os dados de um projeto existente. Envia notificações automáticas quando há mudança de Project Manager ou Technical Lead. Registra log de auditoria da atualização. Requer permissão de MANAGER ou ADMIN.",
+        "operationId": "update_project_api_projects__p_id__put",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "p_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "P Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Exclui um Projeto",
+        "description": "Remove permanentemente um projeto do sistema. Registra log de auditoria da exclusão. Requer permissão de ADMIN apenas.",
+        "operationId": "delete_project_api_projects__p_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "p_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "P Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/advance-phase": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Avança Fase do Projeto",
+        "description": "Avança o projeto para a próxima fase do workflow, validando os quality gates necessários. Registra log de auditoria do avanço. Requer permissão de MANAGER ou ADMIN.",
+        "operationId": "advance_project_phase_api_projects__project_id__advance_phase_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/": {
+      "post": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Cria Novo Usuário",
+        "description": "Registra um novo usuário no sistema com email, senha e role. Valida se o email já não está em uso. Não requer autenticação para permitir auto-registro.",
+        "operationId": "create_user_api_users__post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/tasks/": {
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Lista Tarefas do Projeto",
+        "description": "Retorna todas as tarefas associadas a um projeto específico. Requer autenticação de qualquer usuário válido.",
+        "operationId": "get_tasks_for_project_api_projects__project_id__tasks__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TaskRead"
+                  },
+                  "title": "Response Get Tasks For Project Api Projects  Project Id  Tasks  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Cria Nova Tarefa",
+        "description": "Cria uma nova tarefa dentro de um projeto específico. Envia notificação automática se um usuário for atribuído à tarefa. Requer autenticação de qualquer usuário válido.",
+        "operationId": "create_task_api_projects__project_id__tasks__post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/tasks/{task_id}": {
+      "get": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Busca Tarefa por ID",
+        "description": "Retorna os detalhes de uma tarefa específica dentro de um projeto. Valida se a tarefa pertence ao projeto informado. Requer autenticação de qualquer usuário válido.",
+        "operationId": "get_task_api_projects__project_id__tasks__task_id__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Atualiza Tarefa Existente",
+        "description": "Atualiza os dados de uma tarefa existente dentro de um projeto. Envia notificação automática se houver mudança na atribuição de usuário. Requer autenticação de qualquer usuário válido.",
+        "operationId": "update_task_api_projects__project_id__tasks__task_id__put",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TaskUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Tasks"
+        ],
+        "summary": "Exclui uma Tarefa",
+        "description": "Remove permanentemente uma tarefa de um projeto. Valida se a tarefa pertence ao projeto informado. Requer permissão de MANAGER ou ADMIN.",
+        "operationId": "delete_task_api_projects__project_id__tasks__task_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "task_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Task Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/documents/upload": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Upload de Documento",
+        "description": "Faz upload de um arquivo para um projeto específico. O arquivo é armazenado no sistema de arquivos e os metadados no banco de dados. Requer autenticação de qualquer usuário válido.",
+        "operationId": "upload_document_api_projects__project_id__documents_upload_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_document_api_projects__project_id__documents_upload_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/documents/": {
+      "get": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Lista Documentos do Projeto",
+        "description": "Retorna todos os documentos associados a um projeto específico. Requer autenticação de qualquer usuário válido.",
+        "operationId": "get_documents_api_projects__project_id__documents__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DocumentRead"
+                  },
+                  "title": "Response Get Documents Api Projects  Project Id  Documents  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/documents/{document_id}": {
+      "put": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Atualiza Metadados do Documento",
+        "description": "Atualiza os metadados de um documento existente (nome, descrição, etc.). Valida se o documento pertence ao projeto informado. Requer permissão de MANAGER ou ADMIN.",
+        "operationId": "update_document_metadata_api_projects__project_id__documents__document_id__put",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Exclui um Documento",
+        "description": "Remove permanentemente um documento do projeto, incluindo o arquivo físico do sistema de arquivos. Valida se o documento pertence ao projeto informado. Requer permissão de MANAGER ou ADMIN.",
+        "operationId": "delete_document_api_projects__project_id__documents__document_id__delete",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "document_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Document Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/projects-by-status": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Projetos por Status",
+        "description": "Retorna estatísticas de contagem de projetos agrupados por status (ativo, concluído, cancelado, etc.). Requer autenticação de qualquer usuário válido.",
+        "operationId": "get_projects_by_status_api_analytics_projects_by_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AnalyticsStat"
+                  },
+                  "type": "array",
+                  "title": "Response Get Projects By Status Api Analytics Projects By Status Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/projects-by-phase": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Projetos por Fase",
+        "description": "Retorna estatísticas de contagem de projetos agrupados por fase do workflow (iniciação, planejamento, execução, etc.). Requer autenticação de qualquer usuário válido.",
+        "operationId": "get_projects_by_phase_api_analytics_projects_by_phase_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AnalyticsStat"
+                  },
+                  "type": "array",
+                  "title": "Response Get Projects By Phase Api Analytics Projects By Phase Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/debug/sentry-test": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Teste de Erro (Debug)",
+        "description": "Endpoint de debug que gera um erro intencional para testar o sistema de monitoramento Sentry. Não deve ser usado em produção.",
+        "operationId": "trigger_error_api_analytics_debug_sentry_test_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analytics/projects-by-pm": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Projetos por Project Manager",
+        "description": "Retorna estatísticas de contagem de projetos agrupados por Project Manager (GP). Mostra 'Unassigned' para projetos sem GP atribuído. Requer autenticação de qualquer usuário válido.",
+        "operationId": "get_projects_by_project_manager_api_analytics_projects_by_pm_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AnalyticsStat"
+                  },
+                  "type": "array",
+                  "title": "Response Get Projects By Project Manager Api Analytics Projects By Pm Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/projects-by-tl": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Projetos por Technical Lead",
+        "description": "Retorna estatísticas de contagem de projetos agrupados por Technical Lead (LT). Mostra 'Unassigned' para projetos sem LT atribuído. Requer autenticação de qualquer usuário válido.",
+        "operationId": "get_projects_by_technical_lead_api_analytics_projects_by_tl_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AnalyticsStat"
+                  },
+                  "type": "array",
+                  "title": "Response Get Projects By Technical Lead Api Analytics Projects By Tl Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/projects-by-client": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Projetos por Cliente",
+        "description": "Retorna estatísticas de contagem de projetos agrupados por cliente. Requer autenticação de qualquer usuário válido.",
+        "operationId": "get_projects_by_client_api_analytics_projects_by_client_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AnalyticsStat"
+                  },
+                  "type": "array",
+                  "title": "Response Get Projects By Client Api Analytics Projects By Client Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/analytics/overdue-projects": {
+      "get": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Projetos em Atraso",
+        "description": "Retorna uma lista de projetos em atraso. Um projeto é considerado em atraso se a data de término estimada passou e seu status ainda é 'ativo' ou 'em espera'. Requer autenticação de qualquer usuário válido.",
+        "operationId": "get_overdue_projects_api_analytics_overdue_projects_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectRead"
+                  },
+                  "type": "array",
+                  "title": "Response Get Overdue Projects Api Analytics Overdue Projects Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/notifications/me": {
+      "get": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Minhas Notificações",
+        "description": "Retorna todas as notificações não lidas do usuário autenticado. Requer autenticação de qualquer usuário válido.",
+        "operationId": "get_my_notifications_api_notifications_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/NotificationRead"
+                  },
+                  "type": "array",
+                  "title": "Response Get My Notifications Api Notifications Me Get"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
+    "/api/notifications/{notification_id}/mark-as-read": {
+      "post": {
+        "tags": [
+          "Notifications"
+        ],
+        "summary": "Marcar Notificação como Lida",
+        "description": "Marca uma notificação específica como lida. Valida se a notificação pertence ao usuário autenticado. Requer autenticação de qualquer usuário válido.",
+        "operationId": "mark_notification_as_read_api_notifications__notification_id__mark_as_read_post",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "notification_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Notification Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotificationRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/audit-logs/": {
+      "get": {
+        "tags": [
+          "Admin: Audit Logs"
+        ],
+        "summary": "Get Audit Logs",
+        "description": "Endpoint para consulta de logs de auditoria (apenas para administradores).\n\nRetorna uma lista paginada de todos os logs de auditoria do sistema,\nincluindo informações sobre o usuário que realizou a ação, a ação executada,\ndetalhes contextuais e timestamp.",
+        "operationId": "get_audit_logs_api_admin_audit_logs__get",
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "description": "Número da página",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Número da página"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "exclusiveMinimum": 0,
+              "description": "Tamanho da página",
+              "default": 20,
+              "title": "Size"
+            },
+            "description": "Tamanho da página"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedResponse_AuditLogRead_"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Health Check",
+        "description": "Verifica se a API está operacional.",
+        "operationId": "health_check_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnalyticsStat": {
+        "properties": {
+          "category": {
+            "title": "Category",
+            "description": "Categoria ou dimensão da estatística",
+            "example": "Empresa ABC Ltda"
+          },
+          "count": {
+            "type": "integer",
+            "title": "Count",
+            "description": "Quantidade/contagem para a categoria",
+            "example": 5
+          }
+        },
+        "type": "object",
+        "required": [
+          "category",
+          "count"
+        ],
+        "title": "AnalyticsStat"
+      },
+      "AuditLogRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Identificador único do log de auditoria",
+            "example": "550e8400-e29b-41d4-a716-446655440012"
+          },
+          "user": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserInProject"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Dados do usuário que executou a ação"
+          },
+          "action": {
+            "type": "string",
+            "title": "Action",
+            "description": "Tipo de ação executada",
+            "example": "PROJECT_CREATED"
+          },
+          "details": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Details",
+            "description": "Detalhes contextuais da ação",
+            "example": {
+              "client": "Empresa ABC",
+              "project_name": "Implementação MS365"
+            }
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "Data e hora da execução da ação",
+            "example": "2025-01-15T10:30:00Z"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "action",
+          "timestamp"
+        ],
+        "title": "AuditLogRead"
+      },
+      "Body_login_for_access_token_api_auth_token_post": {
+        "properties": {
+          "grant_type": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^password$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Grant Type"
+          },
+          "username": {
+            "type": "string",
+            "title": "Username"
+          },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "title": "Password"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "default": ""
+          },
+          "client_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client Id"
+          },
+          "client_secret": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "format": "password",
+            "title": "Client Secret"
+          }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password"
+        ],
+        "title": "Body_login_for_access_token_api_auth_token_post"
+      },
+      "Body_upload_document_api_projects__project_id__documents_upload_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "format": "binary",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_document_api_projects__project_id__documents_upload_post"
+      },
+      "DocumentRead": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Nome do arquivo/documento",
+            "example": "BRD_Microsoft365_v1.0.pdf"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Tipo/categoria do documento",
+            "example": "BRD"
+          },
+          "file_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Type",
+            "description": "Extensão do arquivo",
+            "example": "pdf"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "Versão do documento",
+            "default": 1,
+            "example": 2
+          },
+          "status": {
+            "$ref": "#/components/schemas/DocumentStatus",
+            "description": "Status atual do documento",
+            "default": "uploaded",
+            "example": "APPROVED"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Identificador único do documento",
+            "example": "550e8400-e29b-41d4-a716-446655440010"
+          },
+          "project_id": {
+            "type": "string",
+            "title": "Project Id",
+            "description": "ID do projeto ao qual o documento pertence",
+            "example": "550e8400-e29b-41d4-a716-446655440003"
+          },
+          "uploadedAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Uploadedat",
+            "description": "Data e hora do upload do documento",
+            "example": "2025-01-15T14:20:00Z"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "id",
+          "project_id",
+          "uploadedAt"
+        ],
+        "title": "DocumentRead"
+      },
+      "DocumentStatus": {
+        "type": "string",
+        "enum": [
+          "uploaded",
+          "approved",
+          "rejected"
+        ],
+        "title": "DocumentStatus"
+      },
+      "DocumentUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Novo nome do documento",
+            "example": "BRD_Microsoft365_v2.0.pdf"
+          },
+          "type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Type",
+            "description": "Novo tipo do documento",
+            "example": "LLD"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DocumentStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Novo status do documento",
+            "example": "UNDER_REVIEW"
+          }
+        },
+        "type": "object",
+        "title": "DocumentUpdate"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "NotificationRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Identificador único da notificação",
+            "example": "550e8400-e29b-41d4-a716-446655440011"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Conteúdo da mensagem de notificação",
+            "example": "Projeto 'Implementação MS365' avançou para fase de Elaboração"
+          },
+          "is_read": {
+            "type": "boolean",
+            "title": "Is Read",
+            "description": "Indica se a notificação foi lida pelo usuário",
+            "example": false
+          },
+          "link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Link",
+            "description": "Link relacionado à notificação",
+            "example": "/projects/550e8400-e29b-41d4-a716-446655440003"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Data e hora de criação da notificação",
+            "example": "2025-01-15T16:45:00Z"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "message",
+          "is_read",
+          "created_at"
+        ],
+        "title": "NotificationRead"
+      },
+      "PaginatedResponse_AuditLogRead_": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Número total de itens disponíveis na consulta",
+            "example": 150
+          },
+          "page": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Page",
+            "description": "Número da página atual (baseado em 1)",
+            "example": 2
+          },
+          "size": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Size",
+            "description": "Número de itens por página",
+            "example": 20
+          },
+          "pages": {
+            "type": "integer",
+            "title": "Pages",
+            "description": "Número total de páginas disponíveis",
+            "example": 8
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AuditLogRead"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "Lista de itens para a página atual"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "page",
+          "size",
+          "pages",
+          "items"
+        ],
+        "title": "PaginatedResponse[AuditLogRead]"
+      },
+      "PaginatedResponse_ProjectRead_": {
+        "properties": {
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Número total de itens disponíveis na consulta",
+            "example": 150
+          },
+          "page": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Page",
+            "description": "Número da página atual (baseado em 1)",
+            "example": 2
+          },
+          "size": {
+            "type": "integer",
+            "exclusiveMinimum": 0.0,
+            "title": "Size",
+            "description": "Número de itens por página",
+            "example": 20
+          },
+          "pages": {
+            "type": "integer",
+            "title": "Pages",
+            "description": "Número total de páginas disponíveis",
+            "example": 8
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ProjectRead"
+            },
+            "type": "array",
+            "title": "Items",
+            "description": "Lista de itens para a página atual"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total",
+          "page",
+          "size",
+          "pages",
+          "items"
+        ],
+        "title": "PaginatedResponse[ProjectRead]"
+      },
+      "ProjectCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Nome descritivo do projeto",
+            "example": "Implementação Microsoft 365"
+          },
+          "client": {
+            "type": "string",
+            "title": "Client",
+            "description": "Nome do cliente para o qual o projeto é executado",
+            "example": "Empresa ABC Ltda"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "title": "Startdate",
+            "description": "Data de início do projeto",
+            "example": "2025-01-15"
+          },
+          "estimatedEndDate": {
+            "type": "string",
+            "format": "date",
+            "title": "Estimatedenddate",
+            "description": "Data estimada para conclusão do projeto",
+            "example": "2025-06-30"
+          },
+          "orderValue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ordervalue",
+            "description": "Valor do contrato/ordem de serviço",
+            "example": "R$ 150.000,00"
+          },
+          "proposal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposal",
+            "description": "Número ou referência da proposta comercial",
+            "example": "PROP-2024-001"
+          },
+          "pct": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pct",
+            "description": "Número do PCT (Plano de Controle de Trabalho)",
+            "example": "PCT-2024-MS365-001"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/ProjectPhase",
+            "description": "Fase atual do projeto no ciclo de vida",
+            "default": "inception",
+            "example": "INCEPTION"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProjectStatus",
+            "description": "Status operacional do projeto",
+            "default": "active",
+            "example": "ACTIVE"
+          },
+          "project_manager_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Manager Id",
+            "description": "ID do gerente de projeto responsável",
+            "example": "550e8400-e29b-41d4-a716-446655440001"
+          },
+          "technical_lead_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Technical Lead Id",
+            "description": "ID do líder técnico do projeto",
+            "example": "550e8400-e29b-41d4-a716-446655440002"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "client",
+          "startDate",
+          "estimatedEndDate"
+        ],
+        "title": "ProjectCreate"
+      },
+      "ProjectPhase": {
+        "type": "string",
+        "enum": [
+          "inception",
+          "definition",
+          "built",
+          "deploy",
+          "close"
+        ],
+        "title": "ProjectPhase"
+      },
+      "ProjectRead": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Nome descritivo do projeto",
+            "example": "Implementação Microsoft 365"
+          },
+          "client": {
+            "type": "string",
+            "title": "Client",
+            "description": "Nome do cliente para o qual o projeto é executado",
+            "example": "Empresa ABC Ltda"
+          },
+          "startDate": {
+            "type": "string",
+            "format": "date",
+            "title": "Startdate",
+            "description": "Data de início do projeto",
+            "example": "2025-01-15"
+          },
+          "estimatedEndDate": {
+            "type": "string",
+            "format": "date",
+            "title": "Estimatedenddate",
+            "description": "Data estimada para conclusão do projeto",
+            "example": "2025-06-30"
+          },
+          "orderValue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ordervalue",
+            "description": "Valor do contrato/ordem de serviço",
+            "example": "R$ 150.000,00"
+          },
+          "proposal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposal",
+            "description": "Número ou referência da proposta comercial",
+            "example": "PROP-2024-001"
+          },
+          "pct": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pct",
+            "description": "Número do PCT (Plano de Controle de Trabalho)",
+            "example": "PCT-2024-MS365-001"
+          },
+          "phase": {
+            "$ref": "#/components/schemas/ProjectPhase",
+            "description": "Fase atual do projeto no ciclo de vida",
+            "default": "inception",
+            "example": "INCEPTION"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ProjectStatus",
+            "description": "Status operacional do projeto",
+            "default": "active",
+            "example": "ACTIVE"
+          },
+          "project_manager_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Manager Id",
+            "description": "ID do gerente de projeto responsável",
+            "example": "550e8400-e29b-41d4-a716-446655440001"
+          },
+          "technical_lead_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Technical Lead Id",
+            "description": "ID do líder técnico do projeto",
+            "example": "550e8400-e29b-41d4-a716-446655440002"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Identificador único do projeto",
+            "example": "550e8400-e29b-41d4-a716-446655440003"
+          },
+          "project_manager": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserInProject"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Dados do gerente de projeto"
+          },
+          "technical_lead": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserInProject"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Dados do líder técnico"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "client",
+          "startDate",
+          "estimatedEndDate",
+          "id"
+        ],
+        "title": "ProjectRead"
+      },
+      "ProjectStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "hold",
+          "completed",
+          "cancelled"
+        ],
+        "title": "ProjectStatus"
+      },
+      "ProjectUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Novo nome do projeto",
+            "example": "Implementação Microsoft 365 - Fase 2"
+          },
+          "client": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Client",
+            "description": "Novo nome do cliente",
+            "example": "Empresa XYZ Ltda"
+          },
+          "startDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Startdate",
+            "description": "Nova data de início",
+            "example": "2025-02-01"
+          },
+          "estimatedEndDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Estimatedenddate",
+            "description": "Nova data estimada de conclusão",
+            "example": "2025-08-31"
+          },
+          "orderValue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ordervalue",
+            "description": "Novo valor do contrato",
+            "example": "R$ 200.000,00"
+          },
+          "proposal": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Proposal",
+            "description": "Nova referência da proposta",
+            "example": "PROP-2024-002"
+          },
+          "pct": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pct",
+            "description": "Novo número do PCT",
+            "example": "PCT-2024-MS365-002"
+          },
+          "phase": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectPhase"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Nova fase do projeto",
+            "example": "ELABORATION"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProjectStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Novo status do projeto",
+            "example": "HOLD"
+          },
+          "project_manager_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Manager Id",
+            "description": "Novo ID do gerente de projeto",
+            "example": "550e8400-e29b-41d4-a716-446655440004"
+          },
+          "technical_lead_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Technical Lead Id",
+            "description": "Novo ID do líder técnico",
+            "example": "550e8400-e29b-41d4-a716-446655440005"
+          }
+        },
+        "type": "object",
+        "title": "ProjectUpdate"
+      },
+      "TaskCreate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Título descritivo da tarefa",
+            "example": "Configurar Active Directory"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Descrição detalhada da tarefa",
+            "example": "Configurar estrutura organizacional do AD com OUs e grupos de segurança"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus",
+            "description": "Status atual da tarefa",
+            "default": "todo",
+            "example": "TODO"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/TaskPriority",
+            "description": "Prioridade da tarefa",
+            "default": "medium",
+            "example": "HIGH"
+          },
+          "dueDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duedate",
+            "description": "Data limite para conclusão da tarefa",
+            "example": "2025-02-15"
+          },
+          "assigned_to_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To Id",
+            "description": "ID do usuário responsável pela tarefa",
+            "example": "550e8400-e29b-41d4-a716-446655440007"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "TaskCreate"
+      },
+      "TaskPriority": {
+        "type": "string",
+        "enum": [
+          "low",
+          "medium",
+          "high",
+          "critical"
+        ],
+        "title": "TaskPriority"
+      },
+      "TaskRead": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title",
+            "description": "Título descritivo da tarefa",
+            "example": "Configurar Active Directory"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Descrição detalhada da tarefa",
+            "example": "Configurar estrutura organizacional do AD com OUs e grupos de segurança"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TaskStatus",
+            "description": "Status atual da tarefa",
+            "default": "todo",
+            "example": "TODO"
+          },
+          "priority": {
+            "$ref": "#/components/schemas/TaskPriority",
+            "description": "Prioridade da tarefa",
+            "default": "medium",
+            "example": "HIGH"
+          },
+          "dueDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duedate",
+            "description": "Data limite para conclusão da tarefa",
+            "example": "2025-02-15"
+          },
+          "assigned_to_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To Id",
+            "description": "ID do usuário responsável pela tarefa",
+            "example": "550e8400-e29b-41d4-a716-446655440007"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Identificador único da tarefa",
+            "example": "550e8400-e29b-41d4-a716-446655440008"
+          },
+          "project_id": {
+            "type": "string",
+            "title": "Project Id",
+            "description": "ID do projeto ao qual a tarefa pertence",
+            "example": "550e8400-e29b-41d4-a716-446655440003"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Createdat",
+            "description": "Data e hora de criação da tarefa",
+            "example": "2025-01-15T10:30:00Z"
+          },
+          "assigned_to": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserInTask"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Dados do usuário responsável pela tarefa"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title",
+          "id",
+          "project_id",
+          "createdAt"
+        ],
+        "title": "TaskRead"
+      },
+      "TaskStatus": {
+        "type": "string",
+        "enum": [
+          "todo",
+          "in-progress",
+          "done",
+          "hold"
+        ],
+        "title": "TaskStatus"
+      },
+      "TaskUpdate": {
+        "properties": {
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title",
+            "description": "Novo título da tarefa",
+            "example": "Configurar Active Directory - Atualizado"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Nova descrição da tarefa",
+            "example": "Configurar AD com integração ao Azure AD"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskStatus"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Novo status da tarefa",
+            "example": "IN_PROGRESS"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TaskPriority"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Nova prioridade da tarefa",
+            "example": "URGENT"
+          },
+          "dueDate": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duedate",
+            "description": "Nova data limite",
+            "example": "2025-02-20"
+          },
+          "assigned_to_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assigned To Id",
+            "description": "Novo responsável pela tarefa",
+            "example": "550e8400-e29b-41d4-a716-446655440009"
+          }
+        },
+        "type": "object",
+        "title": "TaskUpdate"
+      },
+      "Token": {
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "title": "Access Token",
+            "description": "Token JWT para autenticação",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type",
+            "description": "Tipo do token de autenticação",
+            "example": "bearer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "access_token",
+          "token_type"
+        ],
+        "title": "Token"
+      },
+      "UserCreate": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "description": "Endereço de email único do usuário",
+            "example": "usuario@empresa.com"
+          },
+          "password": {
+            "type": "string",
+            "title": "Password",
+            "description": "Senha do usuário (será criptografada)",
+            "example": "MinhaSenh@123"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole",
+            "description": "Papel/função do usuário no sistema",
+            "default": "member",
+            "example": "MEMBER"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "password"
+        ],
+        "title": "UserCreate"
+      },
+      "UserInProject": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Identificador único do usuário",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "description": "Endereço de email do usuário",
+            "example": "joao.silva@empresa.com"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email"
+        ],
+        "title": "UserInProject"
+      },
+      "UserInTask": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Identificador único do usuário",
+            "example": "550e8400-e29b-41d4-a716-446655440000"
+          },
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "description": "Endereço de email do usuário",
+            "example": "maria.santos@empresa.com"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "email"
+        ],
+        "title": "UserInTask"
+      },
+      "UserRead": {
+        "properties": {
+          "email": {
+            "type": "string",
+            "title": "Email",
+            "description": "Endereço de email único do usuário",
+            "example": "usuario@empresa.com"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Identificador único do usuário",
+            "example": "550e8400-e29b-41d4-a716-446655440006"
+          },
+          "role": {
+            "$ref": "#/components/schemas/UserRole",
+            "description": "Papel/função atual do usuário",
+            "example": "MANAGER"
+          }
+        },
+        "type": "object",
+        "required": [
+          "email",
+          "id",
+          "role"
+        ],
+        "title": "UserRead"
+      },
+      "UserRole": {
+        "type": "string",
+        "enum": [
+          "admin",
+          "manager",
+          "member"
+        ],
+        "title": "UserRole"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "OAuth2PasswordBearer": {
+        "type": "oauth2",
+        "flows": {
+          "password": {
+            "scopes": {},
+            "tokenUrl": "/api/auth/token"
+          }
+        }
+      }
+    }
+  }
+}

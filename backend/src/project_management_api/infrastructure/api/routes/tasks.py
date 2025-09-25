@@ -12,7 +12,10 @@ from project_management_api.application.services.notification_service import cre
 router = APIRouter(prefix="/api/projects/{project_id}/tasks", tags=["Tasks"])
 
 
-@router.get("/", response_model=List[schemas.TaskRead])
+@router.get("/", response_model=List[schemas.TaskRead],
+    summary="Lista Tarefas do Projeto",
+    description="Retorna todas as tarefas associadas a um projeto específico. Requer autenticação de qualquer usuário válido."
+)
 async def get_tasks_for_project(
     project_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -21,7 +24,10 @@ async def get_tasks_for_project(
     return await TaskRepository(db).get_by_project(project_id)
 
 
-@router.get("/{task_id}", response_model=schemas.TaskRead)
+@router.get("/{task_id}", response_model=schemas.TaskRead,
+    summary="Busca Tarefa por ID",
+    description="Retorna os detalhes de uma tarefa específica dentro de um projeto. Valida se a tarefa pertence ao projeto informado. Requer autenticação de qualquer usuário válido."
+)
 async def get_task(
     project_id: uuid.UUID,
     task_id: uuid.UUID,
@@ -34,7 +40,10 @@ async def get_task(
     return task
 
 
-@router.post("/", response_model=schemas.TaskRead, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=schemas.TaskRead, status_code=status.HTTP_201_CREATED,
+    summary="Cria Nova Tarefa",
+    description="Cria uma nova tarefa dentro de um projeto específico. Envia notificação automática se um usuário for atribuído à tarefa. Requer autenticação de qualquer usuário válido."
+)
 async def create_task(
     project_id: uuid.UUID,
     task: schemas.TaskCreate,
@@ -55,7 +64,10 @@ async def create_task(
     return created_task
 
 
-@router.put("/{task_id}", response_model=schemas.TaskRead)
+@router.put("/{task_id}", response_model=schemas.TaskRead,
+    summary="Atualiza Tarefa Existente",
+    description="Atualiza os dados de uma tarefa existente dentro de um projeto. Envia notificação automática se houver mudança na atribuição de usuário. Requer autenticação de qualquer usuário válido."
+)
 async def update_task(
     project_id: uuid.UUID,
     task_id: uuid.UUID,
@@ -86,7 +98,10 @@ async def update_task(
     return updated_task
 
 
-@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT,
+    summary="Exclui uma Tarefa",
+    description="Remove permanentemente uma tarefa de um projeto. Valida se a tarefa pertence ao projeto informado. Requer permissão de MANAGER ou ADMIN."
+)
 async def delete_task(
     project_id: uuid.UUID,
     task_id: uuid.UUID,

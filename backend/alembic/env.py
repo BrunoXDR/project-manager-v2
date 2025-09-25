@@ -7,7 +7,7 @@ from alembic import context
 
 # Import your models here for autogenerate support
 import sys
-sys.path.append('/app/src')
+sys.path.append('/home/toor/project-manager-v1/backend/src')
 from project_management_api.domain.models import Base
 
 # this is the Alembic Config object, which provides
@@ -42,10 +42,12 @@ def run_migrations_offline() -> None:
 
     """
     # Get database URL from environment variable
-    url = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/dbname")
-    # Convert asyncpg URL to psycopg2 for Alembic migrations
+    url = os.getenv("DATABASE_URL", "sqlite:///./test_project_manager.db")
+    # Convert asyncpg URL to psycopg2 for Alembic migrations, or handle SQLite
     if url.startswith("postgresql+asyncpg://"):
         url = url.replace("postgresql+asyncpg://", "postgresql://")
+    elif url.startswith("sqlite+aiosqlite://"):
+        url = url.replace("sqlite+aiosqlite://", "sqlite://")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -65,10 +67,12 @@ def run_migrations_online() -> None:
 
     """
     # Override the sqlalchemy.url with environment variable
-    database_url = os.getenv("DATABASE_URL", "postgresql://user:password@localhost/dbname")
-    # Convert asyncpg URL to psycopg2 for Alembic migrations
+    database_url = os.getenv("DATABASE_URL", "sqlite:///./test_project_manager.db")
+    # Convert asyncpg URL to psycopg2 for Alembic migrations, or handle SQLite
     if database_url.startswith("postgresql+asyncpg://"):
         database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
+    elif database_url.startswith("sqlite+aiosqlite://"):
+        database_url = database_url.replace("sqlite+aiosqlite://", "sqlite://")
     config.set_main_option("sqlalchemy.url", database_url)
     
     connectable = engine_from_config(

@@ -11,7 +11,10 @@ from project_management_api.infrastructure.repositories.notification_repository 
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 
 
-@router.get("/me", response_model=List[schemas.NotificationRead])
+@router.get("/me", response_model=List[schemas.NotificationRead],
+    summary="Minhas Notificações",
+    description="Retorna todas as notificações não lidas do usuário autenticado. Requer autenticação de qualquer usuário válido."
+)
 async def get_my_notifications(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(security.get_current_user)
@@ -20,7 +23,10 @@ async def get_my_notifications(
     return await repo.get_unread_for_user(user_id=current_user.id)
 
 
-@router.post("/{notification_id}/mark-as-read", response_model=schemas.NotificationRead)
+@router.post("/{notification_id}/mark-as-read", response_model=schemas.NotificationRead,
+    summary="Marcar Notificação como Lida",
+    description="Marca uma notificação específica como lida. Valida se a notificação pertence ao usuário autenticado. Requer autenticação de qualquer usuário válido."
+)
 async def mark_notification_as_read(
     notification_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),

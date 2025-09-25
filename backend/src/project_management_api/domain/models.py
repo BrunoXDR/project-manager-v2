@@ -1,8 +1,8 @@
 import uuid
 import enum
 from datetime import datetime, date
-from sqlalchemy import Column, String, DateTime, Enum as SQLEnum, Date as SQLDate, ForeignKey, Text, Integer, Boolean
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, String, DateTime, Enum as SQLEnum, Date as SQLDate, ForeignKey, Text, Integer, Boolean, JSON
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
@@ -121,3 +121,14 @@ class Document(Base):
     status = Column(SQLEnum(DocumentStatus), nullable=False, default=DocumentStatus.UPLOADED)
     project_id = Column(String, ForeignKey("projects.id"), nullable=False)
     project = relationship("Project")
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = Column(String, ForeignKey("users.id"), nullable=True, index=True)
+    action = Column(String, nullable=False, index=True)  # Ex: "USER_LOGIN", "PROJECT_CREATED"
+    details = Column(JSON)  # Armazena um JSON com detalhes contextuais (compatível com SQLite e PostgreSQL)
+    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    user = relationship("User")
