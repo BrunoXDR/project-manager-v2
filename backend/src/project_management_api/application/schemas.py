@@ -1,8 +1,17 @@
 import uuid
 from datetime import date, datetime
 from pydantic import BaseModel, computed_field
-from typing import Optional
+from typing import Optional, Any
 from project_management_api.domain.models import ProjectPhase, ProjectStatus, UserRole, TaskStatus, TaskPriority, DocumentStatus
+
+
+# Schema for representing a user within a project context
+class UserInProject(BaseModel):
+    id: uuid.UUID
+    email: str
+    
+    class Config:
+        from_attributes = True
 
 
 class ProjectBase(BaseModel):
@@ -15,10 +24,14 @@ class ProjectBase(BaseModel):
     pct: Optional[str] = None
     phase: ProjectPhase = ProjectPhase.INCEPTION
     status: ProjectStatus = ProjectStatus.ACTIVE
+    project_manager_id: Optional[uuid.UUID] = None
+    technical_lead_id: Optional[uuid.UUID] = None
 
 
 class ProjectRead(ProjectBase):
     id: uuid.UUID
+    project_manager: Optional[UserInProject] = None
+    technical_lead: Optional[UserInProject] = None
     
     class Config:
         from_attributes = True
@@ -38,6 +51,8 @@ class ProjectUpdate(BaseModel):
     pct: Optional[str] = None
     phase: Optional[ProjectPhase] = None
     status: Optional[ProjectStatus] = None
+    project_manager_id: Optional[uuid.UUID] = None
+    technical_lead_id: Optional[uuid.UUID] = None
 
 
 class UserBase(BaseModel):
@@ -99,6 +114,7 @@ class TaskUpdate(BaseModel):
 
 class DocumentBase(BaseModel):
     name: str
+    type: Optional[str] = None  # Ex: "BRD", "LLD", "Proposta Técnica"
     file_type: Optional[str] = None
     version: int = 1
     status: DocumentStatus = DocumentStatus.UPLOADED
@@ -122,5 +138,12 @@ class DocumentRead(DocumentBase):
 
 class DocumentUpdate(BaseModel):
     name: Optional[str] = None
+    type: Optional[str] = None  # Ex: "BRD", "LLD", "Proposta Técnica"
     status: Optional[DocumentStatus] = None
-    # No futuro, poderemos adicionar outros campos como 'type' ou 'description'
+    # No futuro, poderemos adicionar outros campos como 'description'
+
+
+# Analytics schemas for dashboard metrics
+class AnalyticsStat(BaseModel):
+    category: Any
+    count: int

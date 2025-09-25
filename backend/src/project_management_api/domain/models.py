@@ -38,6 +38,14 @@ class Project(Base):
     estimatedEndDate = Column(SQLDate, nullable=False)
     createdAt = Column(DateTime, default=datetime.utcnow)
     updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Foreign keys for project manager and technical lead
+    project_manager_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    technical_lead_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    
+    # Relationships
+    project_manager = relationship("User", foreign_keys=[project_manager_id])
+    technical_lead = relationship("User", foreign_keys=[technical_lead_id])
 
 
 class UserRole(str, enum.Enum):
@@ -92,6 +100,7 @@ class Document(Base):
     __tablename__ = "documents"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String, nullable=False)
+    type = Column(String(100), nullable=True)  # Ex: "BRD", "LLD", "Proposta Técnica"
     file_path = Column(String, nullable=False, unique=True)
     file_type = Column(String)
     version = Column(Integer, default=1)
