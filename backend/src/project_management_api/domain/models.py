@@ -1,7 +1,7 @@
 import uuid
 import enum
 from datetime import datetime, date
-from sqlalchemy import Column, String, DateTime, Enum as SQLEnum, Date as SQLDate, ForeignKey, Text, Integer
+from sqlalchemy import Column, String, DateTime, Enum as SQLEnum, Date as SQLDate, ForeignKey, Text, Integer, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import declarative_base, relationship
 
@@ -94,6 +94,18 @@ class Task(Base):
     project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
     
     project = relationship("Project")
+
+
+class Notification(Base):
+    __tablename__ = "notifications"
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+    message = Column(Text, nullable=False)
+    is_read = Column(Boolean, default=False, nullable=False)
+    link = Column(String, nullable=True)  # Ex: /projects/{project_id}
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    user = relationship("User")
 
 
 class Document(Base):
