@@ -13,8 +13,13 @@ class ProjectRepository:
         self.db = db
 
     async def get_all(self, *, skip: int = 0, limit: int = 20, status: Optional[ProjectStatus] = None) -> Tuple[List[Project], int]:
-        # Query para os itens paginados e filtrados
-        query = select(Project).order_by(Project.createdAt.desc())
+        from sqlalchemy.orm import selectinload
+        
+        # Query para os itens paginados e filtrados com eager loading dos relacionamentos
+        query = select(Project).options(
+            selectinload(Project.project_manager),
+            selectinload(Project.technical_lead)
+        ).order_by(Project.createdAt.desc())
         if status:
             query = query.filter(Project.status == status)
         
@@ -33,7 +38,16 @@ class ProjectRepository:
         return items, total
 
     async def get_by_id(self, project_id: uuid.UUID) -> Optional[Project]:
-        result = await self.db.execute(select(Project).filter(Project.id == project_id))
+        from sqlalchemy.orm import selectinload
+        
+        result = await self.db.execute(
+            select(Project)
+            .options(
+                selectinload(Project.project_manager),
+                selectinload(Project.technical_lead)
+            )
+            .filter(Project.id == project_id)
+        )
         return result.scalars().first()
 
     async def create(self, p_data: ProjectCreate) -> Project:
@@ -95,9 +109,15 @@ class ProjectRepository:
         Retorna projetos cuja data estimada de término já passou e que não estão
         em um estado final (concluído ou cancelado).
         """
+        from sqlalchemy.orm import selectinload
+        
         today = date.today()
         query = (
             select(Project)
+            .options(
+                selectinload(Project.project_manager),
+                selectinload(Project.technical_lead)
+            )
             .filter(
                 Project.estimatedEndDate < today,
                 Project.status.in_([ProjectStatus.ACTIVE, ProjectStatus.HOLD])
