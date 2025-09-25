@@ -1,5 +1,6 @@
 # backend/src/project_management_api/infrastructure/api/main.py
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 import sentry_sdk
 import os
 from .routes import projects, users, auth, tasks, documents, analytics, notifications, audit_logs
@@ -21,6 +22,15 @@ app = FastAPI(
     openapi_url="/api/openapi.json",  # Garante que a documentação fique sob /api
     docs_url="/api/docs",
     redoc_url="/api/redoc"
+)
+
+# Configurar CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://192.168.15.36:8081", "http://localhost:8081"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Include routers
